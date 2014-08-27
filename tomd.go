@@ -24,6 +24,7 @@ package tomd
 
 import (
 	"encoding/csv"
+	"errors"
 	"io"
 	"os"
 
@@ -55,10 +56,13 @@ func SetLogWriter(writer io.Writer) error {
 		return errors.New("Nil writer")
 	}
 
-	newLogger, err := seelog.LoggerFromWriterWithMinLevel(writer, seelog.Trace)
+	newLogger, err := seelog.LoggerFromWriterWithMinLevel(writer, seelog.TraceLvl)
 	if err != nil {
 		return err
 	}
+
+	UseLogger(newLogger)	
+	return nil
 }
 
 // FlushLog must be called before app shutdown.
@@ -89,14 +93,42 @@ func CSVtoTable(source *io.Reader, destination *io.Writer) {
 
 }
 
-// ReadFile takes a path, reads the contents of the file and returns int.
-func ReadFile() ({
+// ReadCSV takes a reader, and reads the data connected with it as CSV data.
+// A slice of slice of type string, or an error, are returned. This reads the
+// entire file, so if the file is very large and you don't have sufficent RAM
+// you will not like the results. There may be a row oriented implementation 
+// in the future.
+func ReadCSV(r io.Reader )  ([][]string,  error) {
+	cr := csv.NewReader(r)
+	rows, err := cr.ReadAll()
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
 
+	return rows, nil
 }
 
-// WriteFile takes a path, writes the provided data to the file.
-func WritFile() error {
+// ReadCSVFile takes a path, reads the contents of the file and returns int.
+func ReadCSVFile(f string) ([][]string, error) {
+	file, err := os.Open(f)
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+	
+	// because we don't want to forget or worry about hanldling close prior
+	// to every return.
+	defer file.Close()
+	
+	//
+	data, err := ReadCSV(file)
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
 
+	return data, nil
 }
 
 
