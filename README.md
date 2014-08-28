@@ -1,7 +1,7 @@
 tomd
 ====
 
-tomd: a package that converts stuff **to ma**rkdown
+tomd: a package that converts stuff __to ma__rkdown
 
 Written to convert .csv files to markdown tables, but csvtomd has too many consonants and not enough vowels for most English speakers, or American speaker in this case. Anyways that kind of consonant/verb ratio frightens me.
 
@@ -16,13 +16,16 @@ Not much at the moment:
 
 ## How to use it:
 ### install
+
     $ go get github.com/mohae/tomd
 
 ### convert a CSV file:
 Get a CSV object:
+
     c := tomd.NewCSV()
 
 Call `CSV.FileToTable(filename)` with the CSV filename:
+
 	err := c.FileToTable
 
 Retrieve the markdown []bytes:
