@@ -206,12 +206,14 @@ func (c *CSV) ToMD() ()  {
 // RowToMD takes a csv table row and returns the md version of it consistent
 // with its configuration.
 func (c *CSV) RowToMD(cols []string) {
+	c.appendColumnSeparator()
 
 	for _, col := range cols {
 		// TODO this is where column data decoration would occur
 		// with templates
 		bcol := []byte(col)
 		c.md = append(c.md, bcol...)
+		c.appendColumnSeparator()
 	}
 
 }
@@ -227,7 +229,7 @@ func (c *CSV) addHeader() () {
 		// not implemented--get from template TODO
 	}
 
-	c.appendHeaderSeparatorRow(len(c.table))
+	c.appendHeaderSeparatorRow(len(c.table[0]))
 	return
 }
 

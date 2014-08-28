@@ -8,7 +8,44 @@ import (
 )
 
 var marshal = json.NewMarshalString()
+var tableData, tableDataNoHeader [][]string
 
+func init() {
+	tableData =  [][]string{
+	[]string{
+		"Item", 
+		"Description", 
+		"Price",
+	},
+	[]string{
+		"string", 
+		" a string of indeterminate length", 
+		" $9.99", 
+	},
+	[]string{
+		"towel", 
+		" an intergalactic traveller's essential",
+		" $42.00",
+	}}
+
+	tableDataNoHeader =  [][]string{
+	[]string{
+		"book", 
+		"Has the words \"don't panic\" in large, friendly letters on the cover", 
+		"Price",
+	},
+	[]string{
+		"string", 
+		" a string of indeterminate length", 
+		" $9.99", 
+	},
+	[]string{
+		"towel", 
+		" an intergalactic traveller's essential",
+		" $42.00",
+	}}
+
+}
 func TestNewCSV(t *testing.T) {
 	tests :=  []struct{
 		name string
@@ -133,4 +170,111 @@ func TestReadCSVFile(t *testing.T) {
 			}
 		}
 	}		
+}
+
+
+func TestToMD(t *testing.T) {
+	tests :=  []struct{
+		name string
+		hasHeader bool
+		table [][]string
+		expected string
+	}{
+		{"TOMD w header", true, tableData, "|Item|Description|Price||-|-|-||string| a string of indeterminate length| $9.99||towel| an intergalactic traveller's essential| $42.00|"},
+		{"TOMD w/o header", false, tableDataNoHeader, `|-|-|-||book|Has the words "don't panic" in large, friendly letters on the cover|Price||string| a string of indeterminate length| $9.99||towel| an intergalactic traveller's essential| $42.00|`},
+	}
+
+	for _, test := range tests {
+		c := NewCSV()
+		c.HasHeaderRow = test.hasHeader
+		c.table = test.table
+		c.ToMD()
+		if  string(c.md) != test.expected {
+			t.Errorf("%s: expected %s, got %s", test.name, test.expected, string(c.md))
+		}
+	}
+}
+
+func TestRowToMD(t *testing.T) {
+	tests :=  []struct{
+		name string
+		value []string
+		expected string
+	}{
+		{"test 2 cols", []string{"col1", "col2"}, "|col1|col2|"},
+		{"test 3 cols", []string{"col1", "col2", "col3"}, "|col1|col2|col3|"},
+		{"test 4 cols", []string{"col1", "col2", "col3", "col4"}, "|col1|col2|col3|col4|"},
+		{"test 5 cols", []string{"col1", "col2", "col3", "col4", "col5"}, "|col1|col2|col3|col4|col5|"},
+	}
+
+
+	for _, test := range tests {
+		c := NewCSV()
+		c.RowToMD(test.value)
+		if string(c.md) != test.expected {
+			t.Errorf("%s: expected %s, got %s", test.name, test.expected, string(c.md))
+		}
+	}
+}
+
+
+func TestAddHeader(t *testing.T) {
+	tests :=  []struct{
+		name string
+		headerRow bool
+		data [][]string
+		expected string
+	}{
+		{"w header row", false, tableData, "|-|-|-|"},
+		{"without header row", true, tableData, "|Item|Description|Price||-|-|-|"},
+	}
+
+
+	for _, test := range tests {
+		c := NewCSV()
+		c.HasHeaderRow =  test.headerRow
+		c.table = test.data		
+		c.addHeader()
+		if string(c.md) != test.expected {
+			t.Errorf("%s: expected %s, got %s", test.name, test.expected, string(c.md))
+		}
+	}
+}
+
+func TestAppendHeaderSeparatorRow(t *testing.T) {
+	tests :=  []struct{
+		name string
+		cols int
+		expected string
+	}{
+		{"3 cols", 3, "|-|-|-|"},
+		{"4 cols", 4, "|-|-|-|-|"},
+	}
+
+
+	for _, test := range tests {
+		c := NewCSV()		
+		c.appendHeaderSeparatorRow(test.cols)
+		if string(c.md) != test.expected {
+			t.Errorf("%s: expected %s, got %s", test.name, test.expected, string(c.md))
+		}
+	}
+}
+
+func TestAppendColumnSeparator(t *testing.T) {
+	tests :=  []struct{
+		name string
+		expected string
+	}{
+		{"append column separator", "|"},
+	}
+
+	
+	for _, test := range tests {
+		c := NewCSV()
+		c.appendColumnSeparator()
+		if string(c.md) != test.expected {
+			t.Errorf("%s: expected %s, got %s", test.name, test.expected, string(c.md))
+		}
+	}
 }
