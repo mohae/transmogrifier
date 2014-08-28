@@ -26,6 +26,62 @@ func TestNewCSV(t *testing.T) {
 	}
 }
 
+/*
+func TestFileToMDTable(t *testing.T {
+
+
+}
+*/
+
+
+func TestReadCSV(t *testing.T) {
+	tests :=  []struct{
+		name string
+		value string
+		expected [][]string
+		expectedErr string
+	}{
+		{"Test Read CSV", "tests/test.csv", [][]string{
+			[]string{
+				"Item", 
+				"Description", 
+				"Price",
+			},
+			[]string{
+				"string", 
+				" a string of indeterminate length", 
+				" $9.99", 
+			},
+			[]string{
+				"towel", 
+				" an intergalactic traveller's essential",
+				" $42.00",
+			},
+		}, ""},
+	}
+
+
+	for _, test := range tests {
+		file, err := os.Open(test.value)
+		if err != nil {
+			if err.Error() != test.expectedErr {
+				t.Errorf("%s: expected %s, got %s", test.name, test.expectedErr, err.Error())
+			}
+		} else {
+		
+			val, err := ReadCSV(file)
+			if test.expectedErr != "" {
+				t.Errorf("%s: expected an error: %s, but no error was received", test.name, test.expectedErr)
+			} else {
+				if value != test.expected {
+					t.Errorf("%s: expected %s, got %s", test.name, test.expected, value)
+				}
+			}
+		}
+		file.Close()
+	}
+}
+
 func TestReadCSVFile(t *testing.T) {
 	tests := []struct{
 		name string
