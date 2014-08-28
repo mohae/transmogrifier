@@ -1,7 +1,7 @@
 tomd
 ====
 
-tomd: a package that converts stuff __to ma__rkdown
+tomd: a package that converts stuff to marrkdown
 
 Written to convert .csv files to markdown tables, but csvtomd has too many consonants and not enough vowels for most English speakers, or American speaker in this case. Anyways that kind of consonant/verb ratio frightens me.
 
@@ -29,6 +29,7 @@ Call `CSV.FileToTable(filename)` with the CSV filename:
 	err := c.FileToTable
 
 Retrieve the markdown []bytes:
+    
     md = c.MD()
 
 ### Use a io.Reader
