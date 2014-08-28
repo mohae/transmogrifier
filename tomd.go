@@ -27,6 +27,8 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/cihub/seelog"
 )
@@ -92,11 +94,22 @@ type CSV struct {
 	// the Destination variable should be set to that value.
 	destinationType string
 
-	// Template is the name of the template to use. This is for justifying
-	// the MD table. If no justificattion is wanted, leave template empty.
-	// TODO: currently not supported
-	Template string
+	// HasFormat: whether there's a format to use with the CSV or not. For
+	// files, this is a file with the same name as the CSV file
+	HasFormat bool
+
+	// HeaderRow contains the header row information. This is when a format
+	// has been supplied, the header row information is set.
+	HeaderRow []string
 	
+	// ColumnAlignment contains the alignment information for each column
+	// in the table. This is supplied by the format
+	ColumnAlignment []string
+
+	// ColumnEmphasis contains the emphasis information, if any. for each
+	// column. This is supplied by the format.
+	ColumnEmphasis []string
+
 	// table is the parsed csv data
 	table [][]string
 
@@ -114,7 +127,7 @@ func NewCSV() *CSV {
 // Table takes a reader for csv and converts the read csv to a markdown
 // table.
 // To get the md, call CSV.MD()
-func (c *CSV) Table(r io.Reader) error {
+func (c *CSV) ToTable(r io.Reader) error {
 	var err error
 	c.table, err = ReadCSV(r)
 	if err != nil {
@@ -132,15 +145,56 @@ func (c *CSV) Table(r io.Reader) error {
 // CSV.md is used to build the table markdown during processing. It also stores
 // the md and is available through the CSV.MD() method, which returns []byte
 // MD() method.
-func (c *CSV) FileToTable(source string) error {
+//
+// CSV filename = sources[0]
+// FMT filename = sources[1]
+func (c *CSV) FileToTable(sources ...string) error {
 	var err error
+
 	//Get the CSV from the source
-	c.table, err = ReadCSVFile(source)
+	c.table, err = ReadCSVFile(sources[0])
 	if err != nil {
 		logger.Error(err)
 		return err
 	}
+
+	// If there's a format, load it,
+	var formatName string
+	if len(sources) >= 2 {
+		// If the slice passed was long enough, assume 2nd is format file
+		formatName =  sources[1]
+
+		// and set HasFormat to true
+		c.HasFormat = true
+	} else {
+		// otherwise see if  HasFormat
+		if c.HasFormat {
+			//derive the format filename
+			filename := filepath.Base(sources[0])
+			if filename == "." {
+				err := errors.New("unable to determine format filename")
+				logger.Error(err)
+				return err
+			}
+
+			dir := filepath.Dir(sources[0])
+			parts := strings.Split(filename, ".")
+			formatName = parts[0] + ".fmt"
+
+			if dir != "." {
+				formatName = dir + formatName
+			}
+		}
+	}
 	
+	if c.HasFormat {
+		err := c.FormatFromFile(formatName)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+	}
+
 	// Now convert the data to MD
 	c.toMD()
 
@@ -157,7 +211,7 @@ func (c *CSV) MD() []byte {
 // entire file, so if the file is very large and you don't have sufficent RAM
 // you will not like the results. There may be a row oriented implementation 
 // in the future.
-func ReadCSV(r io.Reader ) ([][]string,  error) {
+func ReadCSV(r io.Reader ) ([][]string, error) {
 	cr := csv.NewReader(r)
 	rows, err := cr.ReadAll()
 	if err != nil {
@@ -226,28 +280,62 @@ func (c *CSV) addHeader() () {
 		//remove the first row
 		c.table = append(c.table[1:])
 	} else {
-		// not implemented--get from template TODO
+		if c.HasFormat {
+			c.rowToMD(c.HeaderRow)
+		}
 	}
 
 	c.appendHeaderSeparatorRow(len(c.table[0]))
 	return
 }
 
-// appendSeparatorRow adds a sepa
-// appendSeparator adds the configured column  separator
+// appendHeaderSeparator adds the configured column  separator
 func (c *CSV) appendHeaderSeparatorRow(cols int) {
 	c.appendColumnSeparator()
-	val := []byte("-|")
+
 	for i := 0; i < cols; i++ {
-		c.md = append(c.md, val...)
+		var separator []byte	
+
+		if c.HasFormat {
+			switch c.ColumnAlignment[i] {
+			case "left", "l":
+				separator = []byte(":-|")
+			case "center", "c":
+				separator = []byte(":-|")
+			case "right", "r":
+				separator = []byte("-:|")
+			default:
+				separator = []byte("-|")
+			}
+		} else {
+			separator = []byte("-|")
+		}
+
+		c.md = append(c.md, separator...)
 	}
 
 	return
 			
 }
 
-// appendColSeparator appends a pip to the md array
+// appendColumnSeparator appends a pip to the md array
 func (c *CSV) appendColumnSeparator() () {
 	val := []byte("|")
 	c.md = append(c.md, val...)
+}
+
+// FormatFromFile loads the format file specified. 
+func (c *CSV) FormatFromFile(s string) error {
+	table, err := ReadCSVFile(s)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	
+	//Row 0 is the header information
+	c.HeaderRow = table[0]
+	c.ColumnAlignment = table[1]
+	c.ColumnEmphasis = table[2]
+
+	return nil
 }
