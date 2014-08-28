@@ -4,6 +4,24 @@ import (
 	"testing"
 )
 
+func TestNewCSV(t *testing.T) {
+	tests :=  []struct{
+		name string
+		value string
+		expected *CSV
+		expectedErr string
+	}{
+		{"NewCSV", "", &CSV{HasHeaderRow: true, destinationType: "bytes", table: [][]string{}}, ""},
+	}
+
+	for _, test := range tests {
+		value := NewCSV()		
+		if value != test.expected {
+			t.Errorf("%s: expected %s, got %s", test.name, test.expected, value)
+		}
+	}
+}
+
 func TestReadCSVFile(t *testing.T) {
 	tests := []struct{
 		name string
@@ -22,12 +40,12 @@ func TestReadCSVFile(t *testing.T) {
 			[]string{
 				"string", 
 				" a string of indeterminate length", 
-				"$9.99", 
+				" $9.99", 
 			},
 			[]string{
 				"towel", 
 				" an intergalactic traveller's essential",
-				"$42.00",
+				" $42.00",
 			},
  		}, ""},
 	}

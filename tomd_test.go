@@ -2,7 +2,29 @@ package tomd
 
 import (
 	"testing"
+
+	json "github.com/mohae/customjson"
 )
+
+var marshal = json.NewMarshalString()
+
+func TestNewCSV(t *testing.T) {
+	tests :=  []struct{
+		name string
+		value string
+		expected *CSV
+		expectedErr string
+	}{
+		{"NewCSV", "", &CSV{HasHeaderRow: true, destinationType: "bytes", table: [][]string{}}, ""},
+	}
+
+	for _, test := range tests {
+		value := marshal.Get(NewCSV())
+		if value != marshal.Get(test.expected) {
+			t.Errorf("%s: expected %s, got %s", test.name, marshal.Get(test.expected), value)
+		}
+	}
+}
 
 func TestReadCSVFile(t *testing.T) {
 	tests := []struct{
