@@ -111,12 +111,28 @@ func NewCSV() *CSV {
 	return C
 }
 
-// FileToMDTable takes a filename, opens it, reads the csv, and then converts
+// Table takes a reader for csv and converts the read csv to a markdown
+// table.
+// To get the md, call CSV.MD()
+func (c *CSV) Table(r io.Reader) error {
+	var err error
+	c.table, err = ReadCSV(r)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	//No convert the data to MD
+	c.toMD()
+	return nil
+}
+
+// FileToTable takes a filename, opens it, reads the csv, and then converts
 // it to a markdown table.
 // CSV.md is used to build the table markdown during processing. It also stores
 // the md and is available through the CSV.MD() method, which returns []byte
 // MD() method.
-func (c *CSV) FileToMDTable(source string) error {
+func (c *CSV) FileToTable(source string) error {
 	var err error
 	//Get the CSV from the source
 	c.table, err = ReadCSVFile(source)
