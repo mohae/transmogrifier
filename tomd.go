@@ -89,8 +89,66 @@ func FlushLog() {
 // 
 // TODO: implement unsopported features
 //
-func CSVtoTable(source *io.Reader, destination *io.Writer) {
 
+// CSV is a struct for representing and working with csv data.
+type CSV struct {
+	// WHeaders signifies whether the datasource's first row is a header
+	// row or not. If true, the sources first row is a header row and will
+	// be treated as such, otherwise the header information comes from the
+	// template file for the source CSV.
+	HasHeaderRow bool
+
+	// Source is the source of the CSV data. It is currently assumed to be
+	// a path location
+	Source string
+
+	// Destination is where the generated markdown should be put, if it is
+	// to be put anywhere. When used, this setting is used in conjunction 
+	// with destinationType. Not all destinationTypes need to specify a
+	// destinatin, bytes, for example.
+	Destination string
+
+	// DestinationType is the type of destination for the md, e.g. file.
+	// If the destinationType requires specification of the destination,
+	// the Destination variable should be set to that value.
+	destinationType string
+
+	// Template is the name of the template to use. This is for justifying
+	// the MD table. If no justificattion is wanted, leave template empty.
+	// TODO: currently not supported
+	Template string
+	
+	// table is the parsed csv data
+	table [][]string
+
+	md []byte
+}
+
+func NewCSV() *CSV {
+	// Only explicitely set the defaults that are not consistent with the
+	// variable types initialization state.
+	C := &CSV{HasHeaderRow: true, destinationType: "bytes", table: [][]string{}}
+	return C
+}
+
+// Table converts the incoming csv to a markdown table. It is expected that any
+// other settings that are needed to get the desired MD table output to the
+// correct destination will be set. 
+// The crated markdown table is captured by CSV and is available through its 
+// MD() method. If no destination is set, this is how the generated markdown
+// can be retrieved.
+func (c *CSV) FileToMDTable(source string) error {
+	var err error
+	//Get the CSV from the source
+	c.table, err = ReadCSVFile(source)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	
+	// Now convert the data to MD
+	
+	return nil
 }
 
 // ReadCSV takes a reader, and reads the data connected with it as CSV data.
@@ -98,7 +156,7 @@ func CSVtoTable(source *io.Reader, destination *io.Writer) {
 // entire file, so if the file is very large and you don't have sufficent RAM
 // you will not like the results. There may be a row oriented implementation 
 // in the future.
-func ReadCSV(r io.Reader )  ([][]string,  error) {
+func ReadCSV(r io.Reader ) ([][]string,  error) {
 	cr := csv.NewReader(r)
 	rows, err := cr.ReadAll()
 	if err != nil {
@@ -131,4 +189,63 @@ func ReadCSVFile(f string) ([][]string, error) {
 	return data, nil
 }
 
+// CSVtoMD takes a [][]string and returns a markdown representation of it as
+// []byte
+func (c *CSV) ToMD() ()  {
+	// Process the header first
+	c.addHeader()
 
+	// for each row of table data, process it.
+	for _, row := range c.table {
+		c.RowToMD(row)
+	}
+	
+	return
+}
+
+// RowToMD takes a csv table row and returns the md version of it consistent
+// with its configuration.
+func (c *CSV) RowToMD(cols []string) {
+
+	for _, col := range cols {
+		// TODO this is where column data decoration would occur
+		// with templates
+		bcol := []byte(col)
+		c.md = append(c.md, bcol...)
+	}
+
+}
+
+// addHeader adds the table header row and the separator row that goes between
+// the header row and the data.
+func (c *CSV) addHeader() () {
+	if c.HasHeaderRow {
+		c.RowToMD(c.table[0])
+		//remove the first row
+		c.table = append(c.table[1:])
+	} else {
+		// not implemented--get from template TODO
+	}
+
+	c.appendHeaderSeparatorRow(len(c.table))
+	return
+}
+
+// appendSeparatorRow adds a sepa
+// appendSeparator adds the configured column  separator
+func (c *CSV) appendHeaderSeparatorRow(cols int) {
+	c.appendColumnSeparator()
+	val := []byte("-|")
+	for i := 0; i < cols; i++ {
+		c.md = append(c.md, val...)
+	}
+
+	return
+			
+}
+
+// appendColSeparator appends a pip to the md array
+func (c *CSV) appendColumnSeparator() () {
+	val := []byte("|")
+	c.md = append(c.md, val...)
+}
