@@ -1,6 +1,7 @@
 package tomd
 
 import (
+	"os"
 	"testing"
 
 	json "github.com/mohae/customjson"
@@ -69,12 +70,14 @@ func TestReadCSV(t *testing.T) {
 			}
 		} else {
 		
-			val, err := ReadCSV(file)
-			if test.expectedErr != "" {
-				t.Errorf("%s: expected an error: %s, but no error was received", test.name, test.expectedErr)
+			value, err := ReadCSV(file)
+			if err != nil {
+				if test.expectedErr != "" {
+					t.Errorf("%s: expected an error: %s, but no error was received", test.name, test.expectedErr)
+				} 
 			} else {
-				if value != test.expected {
-					t.Errorf("%s: expected %s, got %s", test.name, test.expected, value)
+				if marshal.Get(value) != marshal.Get(test.expected) {
+					t.Errorf("%s: expected %s, got %s", test.name, marshal.Get(test.expected), marshal.Get(value))
 				}
 			}
 		}
