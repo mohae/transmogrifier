@@ -67,10 +67,51 @@ func main() {
         fmt.Printf("%s" , md)
 }
 ```
+## Format support
+Basic support for formatting tables has been implemented. Formatting can either be done with a format file, `.fmt`, or by setting the CSV objects formatting information yourself.
 
-## TODO:
-Add template support. Templates can define justification for columns, and, optionally, define header row data, column names, for a CSV file.
+The format information mimics a 3 row CSV table, with the number of columns matching the number of columns of the source CSV:
+
+* Row 1 is the header row. The header information of the file for which this is a format must be set in the format file, regardless of its presence in the source data.
+* Row 2 is the alignment information for the columns in the table.
+* Row 3 is the emphasis information for the columns in the table.
+
+### From a file:
+Formatting from a file can be done two ways, either through the CSV.HasFormat flag or by passing the format file name, along with the csv file name, to the CSV.FileToTable() method. 
+
+To pass the format file name the CSV.FileToTable() call must be in the form of:
+
+    CSV.FileToTable(sourceFilename, formatFilename)
+
+Passing the filename will also set the CSV.HasFormat to `true`.
+
+If your format file uses the same path and name as your source file, except that it ends with `.fmt` instead of `.csv`, you can just set the CSV.HasFormat to `true`. When CSV.HasFormat is true and no format filename was passed, the format filename is derived from the source filename.
+
+### Setting it yourself:
+__Not fully implemented__
+To set the formatting information without a file, you can set the information yourself. `CSV.HasFormat` must be set to true. The following fields need to be populated with their values:
+
+    CSV.HeaderRow           []string
+    CSV.ColumnAlignment     []string
+    CSV.ColumnEmnphasis     []string //not implemented
+
+### ColumnAlignment
+Column alignment sets the column's alignment, if any. Valid values are:
+
+* left, l
+* right, r
+* center, c
+
+An empty value means the alignment is not set for that column
+
+### CaolumnEmphasis
+__Not Implemented__
+Column emphasis sets the MD emphasis, if any, for that column. Valid values are:
+
+* bold, b
+* emphasis, e
+* italics, i
+* strikethrough, s
 
 ### Wishlist:
-* support templating in a CSV cell.
-* template support for _italics_, __bold__, ~~strikethrough~~ 
+* format support for _italics_, __bold__, ~~strikethrough~~ 
