@@ -53,7 +53,7 @@ func TestNewCSV(t *testing.T) {
 		expected *CSV
 		expectedErr string
 	}{
-		{"NewCSV", "", &CSV{HasHeaderRow: true, destinationType: "bytes", table: [][]string{}}, ""},
+		{"NewCSV", "", &CSV{hasHeaderRow: true, destinationType: "bytes", table: [][]string{}}, ""},
 	}
 
 	for _, test := range tests {
@@ -186,9 +186,9 @@ func TestToMD(t *testing.T) {
 
 	for _, test := range tests {
 		c := NewCSV()
-		c.HasHeaderRow = test.hasHeader
+		c.hasHeaderRow = test.hasHeader
 		c.table = test.table
-		c.ToMD()
+		c.toMD()
 		if  string(c.md) != test.expected {
 			t.Errorf("%s: expected %s, got %s", test.name, test.expected, string(c.md))
 		}
@@ -210,7 +210,7 @@ func TestRowToMD(t *testing.T) {
 
 	for _, test := range tests {
 		c := NewCSV()
-		c.RowToMD(test.value)
+		c.rowToMD(test.value)
 		if string(c.md) != test.expected {
 			t.Errorf("%s: expected %s, got %s", test.name, test.expected, string(c.md))
 		}
@@ -232,7 +232,7 @@ func TestAddHeader(t *testing.T) {
 
 	for _, test := range tests {
 		c := NewCSV()
-		c.HasHeaderRow =  test.headerRow
+		c.hasHeaderRow =  test.headerRow
 		c.table = test.data		
 		c.addHeader()
 		if string(c.md) != test.expected {

@@ -1,5 +1,5 @@
 // Copyright © 2014, All rights reserved
-// Joel Scoble, https://github.com/mohae/car
+// Joel Scoble, https://github.com/mohae/tomd
 //
 // This is licensed under The MIT License. Please refer to the included
 // LICENSE file for more information. If the LICENSE file has not been
@@ -70,33 +70,12 @@ func FlushLog() {
 	logger.Flush()
 }
 
-// CSVtoTable takes an stream of bytes that is CSV and outputs it as a stream
-// of bytes representing that table in Markdown.
-//
-// Customized CSV to MD table translations can be specified using template
-// files that specify how the CSV should be translated. Template files enable
-// support of all the implemented features listed in the support list. If the
-// feature has an _ in front of it. it is not supported yet.
-//
-// Supports:
-//	_ Headers
-//	_ No Headers
-//	_ Right Justified
-//	_ Left Justified
-//	_ Centered
-//	_ Justified Headers
-//	_ Justified Fields
-// 
-// TODO: implement unsopported features
-//
-
 // CSV is a struct for representing and working with csv data.
 type CSV struct {
-	// WHeaders signifies whether the datasource's first row is a header
-	// row or not. If true, the sources first row is a header row and will
-	// be treated as such, otherwise the header information comes from the
-	// template file for the source CSV.
-	HasHeaderRow bool
+	// HasHeaderRows: whether the csv data includes a header row as its
+	// first row. If the csv data does not include header data, the header
+	// data must be provided via template
+	hasHeaderRow bool
 
 	// Source is the source of the CSV data. It is currently assumed to be
 	// a path location
@@ -121,22 +100,22 @@ type CSV struct {
 	// table is the parsed csv data
 	table [][]string
 
+	// md holds the md representation of the csv data
 	md []byte
 }
 
 func NewCSV() *CSV {
 	// Only explicitely set the defaults that are not consistent with the
 	// variable types initialization state.
-	C := &CSV{HasHeaderRow: true, destinationType: "bytes", table: [][]string{}}
+	C := &CSV{hasHeaderRow: true, destinationType: "bytes", table: [][]string{}}
 	return C
 }
 
-// Table converts the incoming csv to a markdown table. It is expected that any
-// other settings that are needed to get the desired MD table output to the
-// correct destination will be set. 
-// The crated markdown table is captured by CSV and is available through its 
-// MD() method. If no destination is set, this is how the generated markdown
-// can be retrieved.
+// FileToMDTable takes a filename, opens it, reads the csv, and then converts
+// it to a markdown table.
+// CSV.md is used to build the table markdown during processing. It also stores
+// the md and is available through the CSV.MD() method, which returns []byte
+// MD() method.
 func (c *CSV) FileToMDTable(source string) error {
 	var err error
 	//Get the CSV from the source
@@ -147,8 +126,14 @@ func (c *CSV) FileToMDTable(source string) error {
 	}
 	
 	// Now convert the data to MD
-	
+	c.toMD()
+
 	return nil
+}
+
+// MD() returns the markdown as []byte
+func (c *CSV) MD() []byte {
+	return c.md
 }
 
 // ReadCSV takes a reader, and reads the data connected with it as CSV data.
@@ -189,15 +174,14 @@ func ReadCSVFile(f string) ([][]string, error) {
 	return data, nil
 }
 
-// CSVtoMD takes a [][]string and returns a markdown representation of it as
-// []byte
-func (c *CSV) ToMD() ()  {
+// ToMD does table header processing then converts its table data to MD,
+func (c *CSV) toMD() ()  {
 	// Process the header first
 	c.addHeader()
 
 	// for each row of table data, process it.
 	for _, row := range c.table {
-		c.RowToMD(row)
+		c.rowToMD(row)
 	}
 	
 	return
@@ -205,7 +189,7 @@ func (c *CSV) ToMD() ()  {
 
 // RowToMD takes a csv table row and returns the md version of it consistent
 // with its configuration.
-func (c *CSV) RowToMD(cols []string) {
+func (c *CSV) rowToMD(cols []string) {
 	c.appendColumnSeparator()
 
 	for _, col := range cols {
@@ -221,8 +205,8 @@ func (c *CSV) RowToMD(cols []string) {
 // addHeader adds the table header row and the separator row that goes between
 // the header row and the data.
 func (c *CSV) addHeader() () {
-	if c.HasHeaderRow {
-		c.RowToMD(c.table[0])
+	if c.hasHeaderRow {
+		c.rowToMD(c.table[0])
 		//remove the first row
 		c.table = append(c.table[1:])
 	} else {
