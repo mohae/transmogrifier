@@ -65,14 +65,14 @@ func TestNewCSV(t *testing.T) {
 }
 
 
-func TestFileToMDTable(t *testing.T) {
+func TestFileToTable(t *testing.T) {
 	tests := []struct{
 		name string
 		filename string
 		expected string
 		expectedErr string
 	}{
-		{"test.csv", "tests/test.csv", "|Item|Description|Price||-|-|-||string| a string of indeterminate length| $9.99||towel| an intergalactic traveller's essential| $42.00|", ""},
+		{"test.csv", "tests/test.csv", "|Item|Description|Price||--|--|--||string| a string of indeterminate length| $9.99||towel| an intergalactic traveller's essential| $42.00|", ""},
 		{"no filename", "", "", "open : no such file or directory"},
 	}
 
@@ -95,8 +95,6 @@ func TestFileToMDTable(t *testing.T) {
 		}
 	}
 }
-
-
 
 func TestReadCSV(t *testing.T) {
 	tests :=  []struct{
@@ -206,8 +204,8 @@ func TestToMD(t *testing.T) {
 		table [][]string
 		expected string
 	}{
-		{"TOMD w header", true, tableData, "|Item|Description|Price||-|-|-||string| a string of indeterminate length| $9.99||towel| an intergalactic traveller's essential| $42.00|"},
-		{"TOMD w/o header", false, tableDataNoHeader, `|-|-|-||book|Has the words "don't panic" in large, friendly letters on the cover|Price||string| a string of indeterminate length| $9.99||towel| an intergalactic traveller's essential| $42.00|`},
+		{"TOMD w header", true, tableData, `|Item|Description|Price||--|--|--||string| a string of indeterminate length| $9.99||towel| an intergalactic traveller's essential| $42.00|`},
+		{"TOMD w/o header", false, tableDataNoHeader, `|--|--|--||book|Has the words "don't panic" in large, friendly letters on the cover|Price||string| a string of indeterminate length| $9.99||towel| an intergalactic traveller's essential| $42.00|`},
 	}
 
 	for _, test := range tests {
@@ -251,8 +249,8 @@ func TestAddHeader(t *testing.T) {
 		data [][]string
 		expected string
 	}{
-		{"w header row", false, tableData, "|-|-|-|"},
-		{"without header row", true, tableData, "|Item|Description|Price||-|-|-|"},
+		{"w header row", false, tableData, "|--|--|--|"},
+		{"without header row", true, tableData, "|Item|Description|Price||--|--|--|"},
 	}
 
 
@@ -273,8 +271,8 @@ func TestAppendHeaderSeparatorRow(t *testing.T) {
 		cols int
 		expected string
 	}{
-		{"3 cols", 3, "|-|-|-|"},
-		{"4 cols", 4, "|-|-|-|-|"},
+		{"3 cols", 3, "|--|--|--|"},
+		{"4 cols", 4, "|--|--|--|--|"},
 	}
 
 

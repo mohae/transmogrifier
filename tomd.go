@@ -33,6 +33,20 @@ import (
 	"github.com/cihub/seelog"
 )
 
+// MD constants
+var (
+	// Pipe is the MD column separator
+	pipe []byte = []byte("|")
+	
+	// LeftJustify is the MD for left justification of columns.
+	leftJustify []byte = []byte(":--")
+
+	// RightJustify is the Md for right justification of columns,
+	rightJustify []byte = []byte("--:")
+	centered []byte = []byte(":--:")
+	dontJustify []byte = []byte("--")
+)
+
 var logger seelog.LoggerInterface
 
 func init() {	
@@ -299,18 +313,20 @@ func (c *CSV) appendHeaderSeparatorRow(cols int) {
 		if c.HasFormat {
 			switch c.ColumnAlignment[i] {
 			case "left", "l":
-				separator = []byte(":-|")
+				separator = leftJustify
 			case "center", "c":
-				separator = []byte(":-|")
+				separator = centered
 			case "right", "r":
-				separator = []byte("-:|")
+				separator = rightJustify
 			default:
-				separator = []byte("-|")
+				separator = dontJustify
 			}
 		} else {
-			separator = []byte("-|")
+			separator = dontJustify
 		}
 
+		separator = append(separator, pipe...)
+	
 		c.md = append(c.md, separator...)
 	}
 
@@ -319,9 +335,8 @@ func (c *CSV) appendHeaderSeparatorRow(cols int) {
 }
 
 // appendColumnSeparator appends a pip to the md array
-func (c *CSV) appendColumnSeparator() () {
-	val := []byte("|")
-	c.md = append(c.md, val...)
+func (c *CSV) appendColumnSeparator() {
+	c.md = append(c.md, pipe...)
 }
 
 // FormatFromFile loads the format file specified. 
