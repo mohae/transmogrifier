@@ -47,45 +47,6 @@ var (
 	dontJustify []byte = []byte("--")
 )
 
-var logger seelog.LoggerInterface
-
-func init() {	
-	// Disable logger by default
-	DisableLog()
-}
-
-// DisableLog disables all library log output.
-func DisableLog() {
-	logger = seelog.Disabled
-}
-
-// UseLogger uses a specified seelog.LoggerInterface to output library log.
-// Use this func if you are using Seelog logging system in your app.
-func UseLogger(newLogger seelog.LoggerInterface) {
-	logger = newLogger
-}
-
-// SetLogWriter uses a specified io.Writer to output library log.
-// Use this func if you are not using the Seelog logging system in your app.
-func SetLogWriter(writer io.Writer) error {
-	if writer == nil {
-		return errors.New("Nil writer")
-	}
-
-	newLogger, err := seelog.LoggerFromWriterWithMinLevel(writer, seelog.TraceLvl)
-	if err != nil {
-		return err
-	}
-
-	UseLogger(newLogger)	
-	return nil
-}
-
-// FlushLog must be called before app shutdown.
-func FlushLog() {
-	logger.Flush()
-}
-
 // CSV is a struct for representing and working with csv data.
 type CSV struct {
 	// HasHeaderRows: whether the csv data includes a header row as its
