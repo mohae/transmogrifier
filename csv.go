@@ -24,20 +24,16 @@ package tomd
 
 import (
 	"encoding/csv"
-	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
 // CSV is a struct for representing and working with csv data.
 type CSV struct {
-	// HasHeaderRows: whether the csv data includes a header row as its
-	// first row. If the csv data does not include header data, the header
-	// data must be provided via template
-	hasHeaderRow bool
-
 	// Source is the source of the CSV data. It is currently assumed to be
 	// a path location
 	source string
@@ -56,6 +52,11 @@ type CSV struct {
 	// hasFormat: whether there's a format to use with the CSV or not. For
 	// files, this is a file with the same name as the CSV file
 	hasFormat bool
+
+	// HasHeaderRows: whether the csv data includes a header row as its
+	// first row. If the csv data does not include header data, the header
+	// data must be provided via template
+	hasHeaderRow bool
 
 	// headerRow contains the header row information. This is when a format
 	// has been supplied, the header row information is set.
@@ -77,16 +78,21 @@ type CSV struct {
 }
 
 func NewCSV() *CSV {
-	// Only explicitely set the defaults that are not consistent with the
-	// variable types initialization state.
-	C := &CSV{hasHeaderRow: true, destinationType: "bytes", table: [][]string{}}
+	// Set the defaults based on the environment variables and defaults
+	tmp := os.Getenv("hasheader")
+	header, err := strconv.ParseBool(tmp)
+	if err != nil {
+		header = false
+	}
+
+	C := &CSV{hasHeaderRow: header, destinationType: "bytes", table: [][]string{}}
 	return C
 }
 
-// Table takes a reader for csv and converts the read csv to a markdown
+// ToMDTable takes a reader for csv and converts the read csv to a markdown
 // table.
 // To get the md, call CSV.md()
-func (c *CSV) ToTable(r io.Reader) error {
+func (c *CSV) ToMDTable(r io.Reader) error {
 	var err error
 	c.table, err = ReadCSV(r)
 	if err != nil {
@@ -94,47 +100,37 @@ func (c *CSV) ToTable(r io.Reader) error {
 		return err
 	}
 
-	//No convert the data to md
-	c.tomd()
+	//Now convert the data to md
+	c.toMD()
 	return nil
 }
 
-func (c *CSV) FileToTable(sources ...string) error {
+// FileToMDTable takes a file and marshals it to a md table.
+func (c *CSV) FileToMDTable(source string) error{
 	var err error
-
-	//Get the CSV from the source
-	c.table, err = ReadCSVFile(sources[0])
+	// Try to read the source
+	c.table, err = ReadCSVFile(source)
 	if err != nil {
 		logger.Error(err)
 		return err
 	}
-
-	// If there's a format, load it,
+		
 	var formatName string
-	if len(sources) >= 2 {
-		// If the slice passed was long enough, assume 2nd is format file
-		formatName =  sources[1]
+	// otherwise see if  HasFormat
+	if c.hasFormat {
+		//derive the format filename
+		filename := filepath.Base(source)
+		if filename == "." {
+			err = fmt.Errorf("unable to determine format filename")
+			logger.Error(err)
+			return err
+		}
 
-		// and set HasFormat to true
-		c.hasFormat = true
-	} else {
-		// otherwise see if  HasFormat
-		if c.hasFormat {
-			//derive the format filename
-			filename := filepath.Base(sources[0])
-			if filename == "." {
-				err := errors.New("unable to determine format filename")
-				logger.Error(err)
-				return err
-			}
-
-			dir := filepath.Dir(sources[0])
-			parts := strings.Split(filename, ".")
-			formatName = parts[0] + ".fmt"
-
-			if dir != "." {
-				formatName = dir + formatName
-			}
+		dir := filepath.Dir(source)
+		parts := strings.Split(filename, ".")
+		formatName = parts[0] + ".fmt"
+		if dir != "." {
+			formatName = dir + formatName
 		}
 	}
 	
@@ -147,8 +143,7 @@ func (c *CSV) FileToTable(sources ...string) error {
 	}
 
 	// Now convert the data to md
-	c.tomd()
-
+	c.toMD()
 	return nil
 }
 
@@ -196,13 +191,13 @@ func ReadCSVFile(f string) ([][]string, error) {
 }
 
 // tomd does table header processing then converts its table data to md,
-func (c *CSV) tomd() ()  {
+func (c *CSV) toMD() ()  {
 	// Process the header first
 	c.addHeader()
 
 	// for each row of table data, process it.
 	for _, row := range c.table {
-		c.rowTomd(row)
+		c.rowToMD(row)
 	}
 	
 	return
@@ -210,7 +205,7 @@ func (c *CSV) tomd() ()  {
 
 // rowTomd takes a csv table row and returns the md version of it consistent
 // with its configuration.
-func (c *CSV) rowTomd(cols []string) {
+func (c *CSV) rowToMD(cols []string) {
 	c.appendColumnSeparator()
 
 	for _, col := range cols {
@@ -227,12 +222,12 @@ func (c *CSV) rowTomd(cols []string) {
 // the header row and the data.
 func (c *CSV) addHeader() () {
 	if c.hasHeaderRow {
-		c.rowTomd(c.table[0])
+		c.rowToMD(c.table[0])
 		//remove the first row
 		c.table = append(c.table[1:])
 	} else {
 		if c.hasFormat {
-			c.rowTomd(c.headerRow)
+			c.rowToMD(c.headerRow)
 		}
 	}
 
