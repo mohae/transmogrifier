@@ -1,6 +1,5 @@
 package tomd
 
-
 // MD constants
 var (
 	// Pipe is the MD column separator

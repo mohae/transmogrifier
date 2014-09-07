@@ -28,7 +28,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strconv"
+	_ "strconv"
 	"strings"
 )
 
@@ -49,13 +49,11 @@ type CSV struct {
 	// the Destination variable should be set to that value.
 	destinationType string
 
-	// hasFormat: whether there's a format to use with the CSV or not. For
-	// files, this is a file with the same name as the CSV file
-	hasFormat bool
-
-	// HasHeaderRows: whether the csv data includes a header row as its
+	// hasHeaderRows: whether the csv data includes a header row as its
 	// first row. If the csv data does not include header data, the header
-	// data must be provided via template
+	// data must be provided via template, e.g. false implies 
+	// 'useFormat' == true. True does not have any implications on using
+	// the format file.
 	hasHeaderRow bool
 
 	// headerRow contains the header row information. This is when a format
@@ -70,6 +68,23 @@ type CSV struct {
 	// column. This is supplied by the format.
 	columnEmphasis []string
 
+	// formatSource: the location and name of the source file to use. It
+	// can either be explicitely set, or TOMD will look for it as
+	// `source.fmt`, for `source.csv`.
+	formatSource string
+
+	// useFormat: whether there's a format to use with the CSV or not. For
+	// files, this is usually a file, with the same name and path as the
+	// source, using the 'fmt' extension. This can also be set explicitely.
+	// 'useFormat' == false implies 'hasHeaderRow' == true.
+	useFormat bool
+
+	// useFormatFile: whether the Format to use is a format file or not. 
+	// When true, the format will be loaded from the file. When false, the
+	// format information must be set using their setters: headerRow, 
+	// columAlignment, and columnEmphasis.
+	useFormatFile bool
+
 	// table is the parsed csv data
 	table [][]string
 
@@ -77,21 +92,15 @@ type CSV struct {
 	md []byte
 }
 
+// NewCSV returns an initialize CSV object. It still needs to be configured
+// for use.
 func NewCSV() *CSV {
-	// Set the defaults based on the environment variables and defaults
-	tmp := os.Getenv("hasheader")
-	header, err := strconv.ParseBool(tmp)
-	if err != nil {
-		header = false
-	}
-
-	C := &CSV{hasHeaderRow: header, destinationType: "bytes", table: [][]string{}}
+	C := &CSV{destinationType: "bytes", table: [][]string{}}
 	return C
 }
 
 // ToMDTable takes a reader for csv and converts the read csv to a markdown
-// table.
-// To get the md, call CSV.md()
+// table. To get the md, call CSV.md()
 func (c *CSV) ToMDTable(r io.Reader) error {
 	var err error
 	c.table, err = ReadCSV(r)
@@ -117,7 +126,7 @@ func (c *CSV) FileToMDTable(source string) error{
 		
 	var formatName string
 	// otherwise see if  HasFormat
-	if c.hasFormat {
+	if c.useFormat {
 		//derive the format filename
 		filename := filepath.Base(source)
 		if filename == "." {
@@ -134,7 +143,7 @@ func (c *CSV) FileToMDTable(source string) error{
 		}
 	}
 	
-	if c.hasFormat {
+	if c.useFormat {
 		err := c.formatFromFile(formatName)
 		if err != nil {
 			logger.Error(err)
@@ -226,7 +235,7 @@ func (c *CSV) addHeader() () {
 		//remove the first row
 		c.table = append(c.table[1:])
 	} else {
-		if c.hasFormat {
+		if c.useFormat {
 			c.rowToMD(c.headerRow)
 		}
 	}
@@ -242,7 +251,7 @@ func (c *CSV) appendHeaderSeparatorRow(cols int) {
 	for i := 0; i < cols; i++ {
 		var separator []byte	
 
-		if c.hasFormat {
+		if c.useFormat {
 			switch c.columnAlignment[i] {
 			case "left", "l":
 				separator = mdLeftJustify
@@ -286,3 +295,79 @@ func (c *CSV) formatFromFile(s string) error {
 
 	return nil
 }
+
+// HasHeaderRow returns whether, or not, this csv file has a format file to
+// use.
+func (c *CSV) HasHeaderRow() bool {
+	return c.hasHeaderRow
+}
+
+// SetHasHeaderRow sets whether, or not, the source has a header row.
+func (c *CSV) SetHasHeaderRow(b bool) {
+	c.hasHeaderRow = b
+}
+
+// HeaderRow returns the column headers; i.e., the header row.
+func (c *CSV) HeaderRow() []string {
+	return c.headerRow
+}
+
+// SetHeaderRow sets the headerRow information.
+func (c *CSV) SetHeaderRow(s []string) {
+	c.headerRow = s
+}
+
+// ColumnAlignment returns the columnAlignment information. This can be set
+// either explicitely or using a format file.
+func (c *CSV) ColumnAlignment() []string {
+	return c.columnAlignment
+}
+
+// SetColumnAlignment sets the columnAlignment informatin.
+func (c *CSV) SetColumnAlignment(s []string) {
+	c.columnAlignment = s
+}
+
+// ColumnEmphasis returns the columnEmphasis information. This can be set
+// either explicitly or with a format file.
+func (c *CSV) ColumnEmphasis() []string {
+	return c.columnEmphasis
+}
+
+// SetColumnEmphasis sets columnEmphasis information.
+func (c *CSV) SetColumnEmphasis(s []string) {
+	c.columnEmphasis = s
+}
+
+// FormatSource returns the formatSource information.
+func (c *CSV) FormatSource() string {
+	return c.formatSource
+}
+
+// SetFormatSource sets formatSource information. A side-affect of this is that
+// setting the format file will automatically set `useFormat` and
+// `useFormatFile`.
+func (c *CSV) SetFormatSource(s string) {
+	c.formatSource = s
+}
+
+// UseFormat returns whether this csv file has a format file to use.
+func (c *CSV) UseFormat() bool {
+	return c.useFormat
+}
+
+// SetUseFormat sets whether a format should be used.
+func (c *CSV) SetUseFormat(b bool) {
+	c.useFormat = b
+}
+
+// UseFormat returns whether this csv file has a format file to use.
+func (c *CSV) UseFormatFile() bool {
+	return c.useFormat
+}
+
+// SetUseFormatFile sets whether a format file should be used.
+func (c *CSV) SetUseFormatFile(b bool) {
+	c.useFormatFile = b
+}
+
