@@ -41,12 +41,16 @@ type CSV struct {
 	// destination is where the generated markdown should be put, if it is
 	// to be put anywhere. When used, this setting is used in conjunction 
 	// with destinationType. Not all destinationTypes need to specify a
-	// destinatin, bytes, for example.
+	// destinatin, bytes, for example. 
 	destination string
 
 	// destinationType is the type of destination for the md, e.g. file.
 	// If the destinationType requires specification of the destination,
 	// the Destination variable should be set to that value.
+	// Supported:
+	//	[]byte	no destination needed
+	//	file	destination optional, if not set the output will be
+	//		`sourceFilename.md` instead of `sourceFilename.csv`.
 	destinationType string
 
 	// hasHeaderRows: whether the csv data includes a header row as its
@@ -95,7 +99,11 @@ type CSV struct {
 // NewCSV returns an initialize CSV object. It still needs to be configured
 // for use.
 func NewCSV() *CSV {
-	C := &CSV{destinationType: "bytes", table: [][]string{}}
+	C := &CSV{
+		hasHeader: true,
+		destinationType: "bytes",
+		table: [][]string{}
+	}
 	return C
 }
 
@@ -294,6 +302,26 @@ func (c *CSV) formatFromFile(s string) error {
 	c.columnEmphasis = table[2]
 
 	return nil
+}
+
+// Destination is the of destination for the output, if applicable.
+func (c *CSV) DestinationType() string {
+	return c.destinationType
+}
+
+// SetDestination sets the destination of the output, if applicable.
+func (c *CSV) SetDestinationType(string) {
+	return c.destinationType
+}
+
+// DestinationType is the type of destination for the output.
+func (c *CSV) DestinationType() string {
+	return c.destinationType
+}
+
+// SetDestinationType sets the destinationType.
+func (c *CSV) SetDestinationType(string) {
+	return c.destinationType
 }
 
 // HasHeaderRow returns whether, or not, this csv file has a format file to
