@@ -77,17 +77,27 @@ type CSV struct {
 	// `source.fmt`, for `source.csv`.
 	formatSource string
 
+	// whether for formatSource was autoset or not.
+	formatSourceAutoset bool
+
 	// useFormat: whether there's a format to use with the CSV or not. For
 	// files, this is usually a file, with the same name and path as the
 	// source, using the 'fmt' extension. This can also be set explicitely.
 	// 'useFormat' == false implies 'hasHeaderRow' == true.
 	useFormat bool
 
-	// useFormatFile: whether the Format to use is a format file or not. 
-	// When true, the format will be loaded from the file. When false, the
-	// format information must be set using their setters: headerRow, 
-	// columAlignment, and columnEmphasis.
-	useFormatFile bool
+	// formatType:	the type of format to use. By default, this is in sync
+	//		with the source type, but it can be set independently.
+	// Supported:
+	//	file	The format information is in a format file. By default,
+	//		this is the source filename with the `.fmt` file
+	//		extension, instead of the original extension. This can
+	//		be set independently too.
+	//	default Any setting other than another supported type will be
+	//		interpreted as using the default, which is to manually
+	//		set the different format information you wish to use
+	//		in the marshal using their Setters.
+	formatType string
 
 	// table is the parsed csv data
 	table [][]string
@@ -100,11 +110,28 @@ type CSV struct {
 // for use.
 func NewCSV() *CSV {
 	C := &CSV{
-		hasHeader: true,
+		hasHeaderRow: true,
 		destinationType: "bytes",
-		table: [][]string{}
+		table: [][]string{},
 	}
 	return C
+}
+
+// NewSourceCSV creates a new *CSV with its source set and initialized.
+func NewSourcesCSV(s, t string, b bool) *CSV {
+	c := NewCSV()
+	c.useFormat = b
+
+	// currently anything that's not file uses the default "", which
+	// means set it yourself to use it.
+	switch t {
+	case "bytes":
+	case "file":
+		c.formatType = "file"
+	}
+
+	c.SetSource(s)
+	return c
 }
 
 // ToMDTable takes a reader for csv and converts the read csv to a markdown
@@ -124,6 +151,7 @@ func (c *CSV) ToMDTable(r io.Reader) error {
 
 // FileToMDTable takes a file and marshals it to a md table.
 func (c *CSV) FileToMDTable(source string) error{
+	logger.Debugf("FileToMDTable enter with: %s", source)
 	var err error
 	// Try to read the source
 	c.table, err = ReadCSVFile(source)
@@ -135,24 +163,27 @@ func (c *CSV) FileToMDTable(source string) error{
 	var formatName string
 	// otherwise see if  HasFormat
 	if c.useFormat {
-		//derive the format filename
-		filename := filepath.Base(source)
-		if filename == "." {
-			err = fmt.Errorf("unable to determine format filename")
-			logger.Error(err)
-			return err
-		}
-
-		dir := filepath.Dir(source)
-		parts := strings.Split(filename, ".")
-		formatName = parts[0] + ".fmt"
-		if dir != "." {
-			formatName = dir + formatName
+//		c.setFormatFile()
+		if c.formatType == "file" {
+			//derive the format filename
+			filename := filepath.Base(source)
+			if filename == "." {
+				err = fmt.Errorf("unable to determine format filename")
+				logger.Error(err)
+				return err
+			}
+	
+			dir := filepath.Dir(source)
+			parts := strings.Split(filename, ".")
+			formatName = parts[0] + ".fmt"
+			if dir != "." {
+				formatName = dir + formatName
+			}
 		}
 	}
 	
 	if c.useFormat {
-		err := c.formatFromFile(formatName)
+		err := c.formatFromFile()
 		if err != nil {
 			logger.Error(err)
 			return err
@@ -161,10 +192,12 @@ func (c *CSV) FileToMDTable(source string) error{
 
 	// Now convert the data to md
 	c.toMD()
+
+	logger.Debug("FileToMDTable exit with error: nil")
 	return nil
 }
 
-// md() returns the markdown as []byte
+// MD() returns the markdown as []byte
 func (c *CSV) MD() []byte {
 	return c.md
 }
@@ -172,8 +205,8 @@ func (c *CSV) MD() []byte {
 // ReadCSV takes a reader, and reads the data connected with it as CSV data.
 // A slice of slice of type string, or an error, are returned. This reads the
 // entire file, so if the file is very large and you don't have sufficent RAM
-// you will not like the results. There may be a row oriented implementation 
-// in the future.
+// you will not like the results. There may be a row or chunk oriented
+// implementation in the future.
 func ReadCSV(r io.Reader ) ([][]string, error) {
 	cr := csv.NewReader(r)
 	rows, err := cr.ReadAll()
@@ -235,6 +268,50 @@ func (c *CSV) rowToMD(cols []string) {
 
 }
 
+// setFormatSource sets the formatSource if it is not already set or if the 
+// previously set value was set by setFormatSource. The latter allows auto-
+// generated default source name to be updated when the source is while 
+// preserving overrides.
+func (c *CSV) autosetFormatFile() error {
+	// if the source isn't set, nothing to do.
+	if c.source == "" {
+		logger.Trace("setFormatSource exit: source not set")
+		return nil
+	}
+
+	// if formatSource isn't empty and wasn't set by setFormatSource,
+	// nothing to do
+	if c.formatSource != "" && !c.formatSourceAutoset {
+		logger.Infof("setFormatSource exit: formatSource was already set to %s", c.formatSource)
+		return nil
+	}
+
+	if c.formatType != "file" {
+		logger.Trace("setFormatSource exit: not using format file, format type is %s", c.formatType)
+		return nil
+	}
+
+	// Figure out the filename
+	dir, file := filepath.Split(c.source)
+	
+	// break up the filename into its part, the last is extension.
+	var fname string
+	fParts := strings.Split(file, ".")
+
+	if len(fParts) <= 2 {
+		fname = fParts[0]
+	} else {
+		// Join all but the last part together for the name
+		// This handles names with multiple `.`
+		fname = strings.Join(fParts[0:len(fParts) - 2], ".")
+	}
+
+	fname += ".md"
+	c.formatSource = dir + fname	
+	c.formatSourceAutoset = true
+	return nil
+}
+
 // addHeader adds the table header row and the separator row that goes between
 // the header row and the data.
 func (c *CSV) addHeader() () {
@@ -289,8 +366,22 @@ func (c *CSV) appendColumnSeparator() {
 }
 
 // FormatFromFile loads the format file specified. 
-func (c *CSV) formatFromFile(s string) error {
-	table, err := ReadCSVFile(s)
+func (c *CSV) formatFromFile() error {
+	// not really considering this an error that stops things, just one
+	// that requirs error level logging. Is this right?
+	if c.formatType != "file" {
+		logger.Error("formatFromFile: nothing to do, formatType was %s, expected file", c.formatType)
+		return nil
+	}
+
+	// if formatSource isn't set, nothing todo
+	if c.formatSource == "" {
+		logger.Error("formatFromFile: nothing to do, formatSource was not set", c.formatType)
+		return nil
+	}
+
+	// Read from the format file
+	table, err := ReadCSVFile(c.formatSource)
 	if err != nil {
 		logger.Error(err)
 		return err
@@ -304,14 +395,25 @@ func (c *CSV) formatFromFile(s string) error {
 	return nil
 }
 
+// Source returns the source of the CSV
+func (c *CSV) Source() string {
+	return c.source
+}
+
+// SetSource sets the source and has the formatFile updated, if applicable.
+func (c *CSV) SetSource(s string) {
+	c.source = s
+	c.autosetFormatFile() 
+}
+
 // Destination is the of destination for the output, if applicable.
-func (c *CSV) DestinationType() string {
-	return c.destinationType
+func (c *CSV) Destination() string {
+	return c.destination
 }
 
 // SetDestination sets the destination of the output, if applicable.
-func (c *CSV) SetDestinationType(string) {
-	return c.destinationType
+func (c *CSV) SetDestination(s string) {
+	c.destination = s
 }
 
 // DestinationType is the type of destination for the output.
@@ -320,8 +422,8 @@ func (c *CSV) DestinationType() string {
 }
 
 // SetDestinationType sets the destinationType.
-func (c *CSV) SetDestinationType(string) {
-	return c.destinationType
+func (c *CSV) SetDestinationType(s string) {
+	c.destinationType = s
 }
 
 // HasHeaderRow returns whether, or not, this csv file has a format file to
@@ -384,18 +486,9 @@ func (c *CSV) UseFormat() bool {
 	return c.useFormat
 }
 
-// SetUseFormat sets whether a format should be used.
+// SetUseFormat sets whether a format should be used. This triggers a setting
+// of the FormatFilename, if applicable.
 func (c *CSV) SetUseFormat(b bool) {
 	c.useFormat = b
+	c.autosetFormatFile()
 }
-
-// UseFormat returns whether this csv file has a format file to use.
-func (c *CSV) UseFormatFile() bool {
-	return c.useFormat
-}
-
-// SetUseFormatFile sets whether a format file should be used.
-func (c *CSV) SetUseFormatFile(b bool) {
-	c.useFormatFile = b
-}
-
