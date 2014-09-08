@@ -118,7 +118,7 @@ func NewCSV() *CSV {
 }
 
 // NewSourceCSV creates a new *CSV with its source set and initialized.
-func NewSourcesCSV(s, t string, b bool) *CSV {
+func NewSourcesCSV(t, s string, b bool) *CSV {
 	c := NewCSV()
 	c.useFormat = b
 
@@ -134,7 +134,7 @@ func NewSourcesCSV(s, t string, b bool) *CSV {
 	return c
 }
 
-// ToMDTable takes a reader for csv and converts the read csv to a markdown
+// MDTable takes a reader for csv and converts the read csv to a markdown
 // table. To get the md, call CSV.md()
 func (c *CSV) ToMDTable(r io.Reader) error {
 	var err error
@@ -149,12 +149,12 @@ func (c *CSV) ToMDTable(r io.Reader) error {
 	return nil
 }
 
-// FileToMDTable takes a file and marshals it to a md table.
-func (c *CSV) FileToMDTable(source string) error{
-	logger.Debugf("FileToMDTable enter with: %s", source)
+// MarshalTable marshals the CSV info to a markdown table.
+func (c *CSV) MarshalTable() error{
+	logger.Debugf("MarshalTable enter, source: %s", c.source)
 	var err error
 	// Try to read the source
-	c.table, err = ReadCSVFile(source)
+	c.table, err = ReadCSVFile(c.source)
 	if err != nil {
 		logger.Error(err)
 		return err
@@ -166,14 +166,14 @@ func (c *CSV) FileToMDTable(source string) error{
 //		c.setFormatFile()
 		if c.formatType == "file" {
 			//derive the format filename
-			filename := filepath.Base(source)
+			filename := filepath.Base(c.source)
 			if filename == "." {
 				err = fmt.Errorf("unable to determine format filename")
 				logger.Error(err)
 				return err
 			}
 	
-			dir := filepath.Dir(source)
+			dir := filepath.Dir(c.source)
 			parts := strings.Split(filename, ".")
 			formatName = parts[0] + ".fmt"
 			if dir != "." {
