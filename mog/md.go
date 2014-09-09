@@ -1,26 +1,4 @@
-// Copyright © 2014, All rights reserved
-// Joel Scoble, https://github.com/mohae/tomd
-//
-// This is licensed under The MIT License. Please refer to the included
-// LICENSE file for more information. If the LICENSE file has not been
-// included, please refer to the url above.
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License
-//
-// tomd: to markdown, takes input and converts it to markdown
-//
-// Notes: 
-//	* This is not a general markdown processor. It is a package to provide
-//      functions that allow things to be converted to their representation
-//      in markdown.
-//      Currently that means taking a .csv file and converting it to a table.
-//	* Uses seelog for 'library logging', to enable logging see:
-//        http://github.com/cihub/seelog/wiki/Writing-libraries-with-Seelog
-package tomd
+package mogger
 
 import (
 	"encoding/csv"
@@ -32,26 +10,24 @@ import (
 	"strings"
 )
 
-// CSV is a struct for representing and working with csv data.
-type CSV struct {
-	// Source is the source of the CSV data. It is currently assumed to be
-	// a path location
-	source string
+// MDTable format representations.
+var (
+	// Pipe is the MD column separator
+	mdPipe []byte = []byte("|")
+	
+	// LeftJustify is the MD for left justification of columns.
+	mdLeftJustify []byte = []byte(":--")
 
-	// destination is where the generated markdown should be put, if it is
-	// to be put anywhere. When used, this setting is used in conjunction 
-	// with destinationType. Not all destinationTypes need to specify a
-	// destinatin, bytes, for example. 
-	destination string
+	// RightJustify is the Md for right justification of columns,
+	mdRightJustify []byte = []byte("--:")
+	mdCentered []byte = []byte(":--:")
+	mdDontJustify []byte = []byte("--")
+)
 
-	// destinationType is the type of destination for the md, e.g. file.
-	// If the destinationType requires specification of the destination,
-	// the Destination variable should be set to that value.
-	// Supported:
-	//	[]byte	no destination needed
-	//	file	destination optional, if not set the output will be
-	//		`sourceFilename.md` instead of `sourceFilename.csv`.
-	destinationType string
+// MDTable is a struct for representing and working with markdown tables
+type MDTable struct {
+	// producer/consumer information.
+	mogger
 
 	// hasHeaderRows: whether the csv data includes a header row as its
 	// first row. If the csv data does not include header data, the header
@@ -134,19 +110,19 @@ func NewSourcesCSV(t, s string, b bool) *CSV {
 	return c
 }
 
-// MDTable takes a reader for csv and converts the read csv to a markdown
+// MarshalTable takes a reader for csv and converts the read csv to a markdown
 // table. To get the md, call CSV.md()
-func (c *CSV) ToMDTable(r io.Reader) error {
+func (c *CSV) MarshalTable(r io.Reader) ([]byte, error) {
 	var err error
 	c.table, err = ReadCSV(r)
 	if err != nil {
 		logger.Error(err)
-		return err
+		return nil, err
 	}
 
 	//Now convert the data to md
 	c.toMD()
-	return nil
+	return c.md, nil
 }
 
 // MarshalTable marshals the CSV info to a markdown table.

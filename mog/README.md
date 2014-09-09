@@ -1,18 +1,19 @@
-tomd
-====
+mogger
+======
 
-tomd: a package that converts stuff to marrkdown
+#### Status: under redesign
 
-Written to convert .csv files to markdown tables, but csvtomd has too many consonants and not enough vowels for most English speakers, or American speaker in this case. Anyways that kind of consonant/verb ratio frightens me.
+mogger: a mogerification package.
 
-So tomd it is!
+Mogger is meant to be a part of a pipeline. As a convenience, mogger also makes available some helpers that can do a transomgriferication process from end to end.
 
-## What tomd converts.
+## What mogger converts.
 Not much at the moment:
 
 * csv to markdown tables
   * csv files with a header row are supported.
   * csv file without a header row is supported, partially (complete support requires adding template support)
+  * adding support for format files.
 
 ## How to use it:
 ### install
