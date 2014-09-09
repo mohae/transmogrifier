@@ -1,7 +1,7 @@
-tmogger
+tmog
 =======
 
-A tmogger is a transmogger, or a mogger than transforms the producer's format into the consumer's expected format.
+Tmog, short for  transmogfrifier, is a  mogger than transforms the producer's format into the consumer's expected format across mogger boundaries.
 
 ## Implementations:
 * CSV to markdown tables
