@@ -1,8 +1,7 @@
-package mogger
-
+package format
 
 // Formatters describe the format of something.
-type  formatter interface {
+type formatter interface {
 	FormatInfo(interface{})
 	GetFormatInfo(interface{})
 	HeaderInfo(interface{})

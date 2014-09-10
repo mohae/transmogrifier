@@ -6,7 +6,9 @@ import (
 
 	"github.com/BurntSushi/toml"
 	seelog "github.com/cihub/seelog"
-	"github.com/mohae/tomd"
+	"github.com/mohae/transmogrifier/format"
+	"github.com/mohae/transmogrifier/mog"
+	"github.com/mohae/transmogrifier/tmog"
 )
 
 var logger seelog.LoggerInterface

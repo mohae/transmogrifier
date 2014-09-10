@@ -1,14 +1,14 @@
 // Contains log related stuff.
-package tomd 
+package transmogrifier
 
 import (
 	"errors"
 	"io"
 
-	seelog "github.com/cihub/seelog"\
-        "github.com/mohae/tranmogrifier/format"
-        "github.com/mohae/tranmogrifier/mog"
-	"github.com/mohae/tranmogrifier/tmog"
+	seelog "github.com/cihub/seelog"
+	"github.com/mohae/transmogrifier/format"
+	"github.com/mohae/transmogrifier/mog"
+	"github.com/mohae/transmogrifier/tmog"
 )
 
 var logger seelog.LoggerInterface
@@ -23,7 +23,7 @@ func DisableLog() {
 	format.DisableLog()
 	mog.DisableLog()
 	tmog.DisableLog()
-        logger = seelog.Disabled
+	logger = seelog.Disabled
 }
 
 // UseLoggers uses a specified seelog.LoggerInterface to output package to log.
@@ -31,7 +31,7 @@ func UseLogger(newLogger seelog.LoggerInterface) {
 	logger = newLogger
 	format.UseLogger(logger)
 	mog.UseLogger(logger)
-	tmog.UseLogger(tmog)
+	tmog.UseLogger(logger)
 }
 
 // SetLogWriter uses a specified io.Writer to output library log.
@@ -51,7 +51,7 @@ func SetLogWriter(writer io.Writer) error {
 }
 
 // FlushLog, call before app shutdown. This is called by realMain(). If a
-// logger other than Seelog is going to be used, use the 
+// logger other than Seelog is going to be used, use the
 func FlushLog() {
 	format.FlushLog()
 	mog.FlushLog()

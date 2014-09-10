@@ -22,5 +22,10 @@ _testmain.go
 *.exe
 *.test
 *~
-*.bak
 *.out
+*.bak
+*.tmp
+*.swp
+*.swo
+*.log
+quine

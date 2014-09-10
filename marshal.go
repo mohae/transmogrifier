@@ -1,12 +1,11 @@
 // marshal implements the marshal command
 package transmogrifier
 
-
 // a convenience struct to handle the arguments, easier this way
 type arg struct {
 	kvSeparator string
-	str	string
-	separator string
+	str         string
+	separator   string
 }
 
 // appends the settings to the settings string.
@@ -16,18 +15,18 @@ func (a *arg) append(k, v string) {
 	}
 
 	if a.str == "" {
-		a.str =  a.getKVString(k,  v)
+		a.str = a.getKVString(k, v)
 		return
 	}
 
 	a.str += a.getKVString(k, v)
 	return
-	
+
 }
 
 // getKVString creates a string version of the key value, separated by the kv
-// separator. 
-func (a *arg) getKVString(k,v string) string {
+// separator.
+func (a *arg) getKVString(k, v string) string {
 	if k == "" || v == "" {
 		return ""
 	}
@@ -41,12 +40,12 @@ func (a *arg) getKVString(k,v string) string {
 	}
 
 	return k + a.kvSeparator + v
-			
+
 }
 
 var Arg = &arg{kvSeparator: "=", separator: ", "}
 
-// Marshal takes the arguments, generates a finalized transmogrification 
+// Marshal takes the arguments, generates a finalized transmogrification
 // template and hands the transmogrification over to the appropriate
 // transmogrifier, which depends on the source type and the type it is to be
 // transformed into.
