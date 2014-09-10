@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	json "github.com/mohae/customjson"
+	"github.com/mohae/transmogrifier/mog"
 )
 
 var marshal = json.NewMarshalString()
@@ -54,7 +55,7 @@ func TestNewCSV(t *testing.T) {
 		expected *CSV
 		expectedErr string
 	}{
-		{"NewCSV", "", &CSV{producer: resource{}, consumer: resource{}, format: resource{}, hasHeaderRow: true, table: [][]string{}}, ""},
+		{"NewCSV", "", &CSV{producer: mog.Resource{}, consumer: mog.Resource{}, format: mog.Resource{}, hasHeaderRow: true, table: [][]string{}}, ""},
 	}
 
 	for _, test := range tests {

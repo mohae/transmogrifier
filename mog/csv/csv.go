@@ -8,18 +8,20 @@ import (
 	_ "path/filepath"
 	_ "strconv"
 	_ "strings"
+
+	"github.com/mohae/transmogrifier/mog"
 )
 
 // CSV is a struct for representing and working with csv data.
 type CSV struct {
 	// producer information.
-	producer resource
+	producer mog.Resource
 
 	// consumer information
-	consumer resource
+	consumer mog.Resource
 
 	// format information
-	format resource
+	format mog.Resource
 
 	// Variables consistent with stdlib's Reader struct in the csv package,
 	// with the exception of csv.Reader.TrailingComma, which is ommitted
@@ -58,9 +60,9 @@ type CSV struct {
 // for use.
 func NewCSV() *CSV {
 	C := &CSV{
-		producer: resource{},
-		consumer: resource{},
-		format: resource{},
+		producer: mog.Resource{},
+		consumer: mog.Resource{},
+		format: mog.Resource{},
 		hasHeaderRow: true,
 		table: [][]string{},
 	}

@@ -1,5 +1,5 @@
 // Contains log related stuff.
-package tomd 
+package mog 
 
 import (
 	"errors"
