@@ -14,14 +14,14 @@ import (
 var (
 	// Pipe is the MD column separator
 	mdPipe []byte = []byte("|")
-	
+
 	// LeftJustify is the MD for left justification of columns.
 	mdLeftJustify []byte = []byte(":--")
 
 	// RightJustify is the Md for right justification of columns,
 	mdRightJustify []byte = []byte("--:")
-	mdCentered []byte = []byte(":--:")
-	mdDontJustify []byte = []byte("--")
+	mdCentered     []byte = []byte(":--:")
+	mdDontJustify  []byte = []byte("--")
 )
 
 // MDTable is a struct for representing and working with markdown tables
@@ -31,7 +31,7 @@ type MDTable struct {
 
 	// hasHeaderRows: whether the csv data includes a header row as its
 	// first row. If the csv data does not include header data, the header
-	// data must be provided via template, e.g. false implies 
+	// data must be provided via template, e.g. false implies
 	// 'useFormat' == true. True does not have any implications on using
 	// the format file.
 	hasHeaderRow bool
@@ -39,7 +39,7 @@ type MDTable struct {
 	// headerRow contains the header row information. This is when a format
 	// has been supplied, the header row information is set.
 	headerRow []string
-	
+
 	// columnAlignment contains the alignment information for each column
 	// in the table. This is supplied by the format
 	columnAlignment []string
@@ -86,9 +86,9 @@ type MDTable struct {
 // for use.
 func NewCSV() *CSV {
 	C := &CSV{
-		hasHeaderRow: true,
+		hasHeaderRow:    true,
 		destinationType: "bytes",
-		table: [][]string{},
+		table:           [][]string{},
 	}
 	return C
 }
@@ -112,7 +112,7 @@ func NewSourcesCSV(t, s string, b bool) *CSV {
 
 // MarshalTable takes a reader for csv and converts the read csv to a markdown
 // table. To get the md, call CSV.md()
-func (c *CSV) MarshalTable(r io.Reader) ([]byte, error) {
+func (c *CSV) MarshalTableReader(r io.Reader) ([]byte, error) {
 	var err error
 	c.table, err = ReadCSV(r)
 	if err != nil {
@@ -126,7 +126,7 @@ func (c *CSV) MarshalTable(r io.Reader) ([]byte, error) {
 }
 
 // MarshalTable marshals the CSV info to a markdown table.
-func (c *CSV) MarshalTable() error{
+func (c *CSV) MarshalTable() error {
 	logger.Debugf("MarshalTable enter, source: %s", c.source)
 	var err error
 	// Try to read the source
@@ -135,11 +135,11 @@ func (c *CSV) MarshalTable() error{
 		logger.Error(err)
 		return err
 	}
-		
+
 	var formatName string
 	// otherwise see if  HasFormat
 	if c.useFormat {
-//		c.setFormatFile()
+		//		c.setFormatFile()
 		if c.formatType == "file" {
 			//derive the format filename
 			filename := filepath.Base(c.source)
@@ -148,7 +148,7 @@ func (c *CSV) MarshalTable() error{
 				logger.Error(err)
 				return err
 			}
-	
+
 			dir := filepath.Dir(c.source)
 			parts := strings.Split(filename, ".")
 			formatName = parts[0] + ".fmt"
@@ -157,7 +157,7 @@ func (c *CSV) MarshalTable() error{
 			}
 		}
 	}
-	
+
 	if c.useFormat {
 		err := c.formatFromFile()
 		if err != nil {
@@ -183,7 +183,7 @@ func (c *CSV) MD() []byte {
 // entire file, so if the file is very large and you don't have sufficent RAM
 // you will not like the results. There may be a row or chunk oriented
 // implementation in the future.
-func ReadCSV(r io.Reader ) ([][]string, error) {
+func ReadCSV(r io.Reader) ([][]string, error) {
 	cr := csv.NewReader(r)
 	rows, err := cr.ReadAll()
 	if err != nil {
@@ -201,11 +201,11 @@ func ReadCSVFile(f string) ([][]string, error) {
 		logger.Error(err)
 		return nil, err
 	}
-	
+
 	// because we don't want to forget or worry about hanldling close prior
 	// to every return.
 	defer file.Close()
-	
+
 	//
 	data, err := ReadCSV(file)
 	if err != nil {
@@ -217,7 +217,7 @@ func ReadCSVFile(f string) ([][]string, error) {
 }
 
 // tomd does table header processing then converts its table data to md,
-func (c *CSV) toMD() ()  {
+func (c *CSV) toMD() {
 	// Process the header first
 	c.addHeader()
 
@@ -225,7 +225,7 @@ func (c *CSV) toMD() ()  {
 	for _, row := range c.table {
 		c.rowToMD(row)
 	}
-	
+
 	return
 }
 
@@ -244,9 +244,9 @@ func (c *CSV) rowToMD(cols []string) {
 
 }
 
-// setFormatSource sets the formatSource if it is not already set or if the 
+// setFormatSource sets the formatSource if it is not already set or if the
 // previously set value was set by setFormatSource. The latter allows auto-
-// generated default source name to be updated when the source is while 
+// generated default source name to be updated when the source is while
 // preserving overrides.
 func (c *CSV) autosetFormatFile() error {
 	// if the source isn't set, nothing to do.
@@ -269,7 +269,7 @@ func (c *CSV) autosetFormatFile() error {
 
 	// Figure out the filename
 	dir, file := filepath.Split(c.source)
-	
+
 	// break up the filename into its part, the last is extension.
 	var fname string
 	fParts := strings.Split(file, ".")
@@ -279,18 +279,18 @@ func (c *CSV) autosetFormatFile() error {
 	} else {
 		// Join all but the last part together for the name
 		// This handles names with multiple `.`
-		fname = strings.Join(fParts[0:len(fParts) - 2], ".")
+		fname = strings.Join(fParts[0:len(fParts)-2], ".")
 	}
 
 	fname += ".md"
-	c.formatSource = dir + fname	
+	c.formatSource = dir + fname
 	c.formatSourceAutoset = true
 	return nil
 }
 
 // addHeader adds the table header row and the separator row that goes between
 // the header row and the data.
-func (c *CSV) addHeader() () {
+func (c *CSV) addHeader() {
 	if c.hasHeaderRow {
 		c.rowToMD(c.table[0])
 		//remove the first row
@@ -310,7 +310,7 @@ func (c *CSV) appendHeaderSeparatorRow(cols int) {
 	c.appendColumnSeparator()
 
 	for i := 0; i < cols; i++ {
-		var separator []byte	
+		var separator []byte
 
 		if c.useFormat {
 			switch c.columnAlignment[i] {
@@ -328,12 +328,12 @@ func (c *CSV) appendHeaderSeparatorRow(cols int) {
 		}
 
 		separator = append(separator, mdPipe...)
-	
+
 		c.md = append(c.md, separator...)
 	}
 
 	return
-			
+
 }
 
 // appendColumnSeparator appends a pip to the md array
@@ -341,7 +341,7 @@ func (c *CSV) appendColumnSeparator() {
 	c.md = append(c.md, mdPipe...)
 }
 
-// FormatFromFile loads the format file specified. 
+// FormatFromFile loads the format file specified.
 func (c *CSV) formatFromFile() error {
 	// not really considering this an error that stops things, just one
 	// that requirs error level logging. Is this right?
@@ -362,7 +362,7 @@ func (c *CSV) formatFromFile() error {
 		logger.Error(err)
 		return err
 	}
-	
+
 	//Row 0 is the header information
 	c.headerRow = table[0]
 	c.columnAlignment = table[1]
@@ -379,7 +379,7 @@ func (c *CSV) Source() string {
 // SetSource sets the source and has the formatFile updated, if applicable.
 func (c *CSV) SetSource(s string) {
 	c.source = s
-	c.autosetFormatFile() 
+	c.autosetFormatFile()
 }
 
 // Destination is the of destination for the output, if applicable.

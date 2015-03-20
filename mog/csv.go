@@ -8,20 +8,18 @@ import (
 	_ "path/filepath"
 	_ "strconv"
 	_ "strings"
-
-	"github.com/mohae/transmogrifier/mog"
 )
 
 // CSV is a struct for representing and working with csv data.
 type CSV struct {
 	// producer information.
-	producer mog.Resource
+	producer resource
 
 	// consumer information
-	consumer mog.Resource
+	consumer resource
 
 	// format information
-	format mog.Resource
+	format resource
 
 	// Variables consistent with stdlib's Reader struct in the csv package,
 	// with the exception of csv.Reader.TrailingComma, which is ommitted
@@ -30,10 +28,10 @@ type CSV struct {
 	// Anything set here will override the Reader's default value set by
 	// csv.NewReader(). Please check golang.org/pkg/encoding/csv for more
 	// info about the variables.
-	comma		 rune
-	comment		 rune
+	comma            rune
+	comment          rune
 	fieldsPerRecord  int
-	lazyQuotes	 bool
+	lazyQuotes       bool
 	trimLeadingSpace bool
 
 	// format
@@ -41,7 +39,7 @@ type CSV struct {
 
 	// hasHeaderRows: whether the csv data includes a header row as its
 	// first row. If the csv data does not include header data, the header
-	// data must be provided via template, e.g. false implies 
+	// data must be provided via template, e.g. false implies
 	// 'useFormat' == true. True does not have any implications on using
 	// the format file.
 	hasHeaderRow bool
@@ -50,21 +48,20 @@ type CSV struct {
 	// headerRow contains the header row information. This is when a format
 	// has been supplied, the header row information is set.
 	headerRow []string
-	
+
 	// table is the parsed csv data
 	table [][]string
-
 }
 
 // NewCSV returns an initialize CSV object. It still needs to be configured
 // for use.
 func NewCSV() *CSV {
 	C := &CSV{
-		producer: mog.Resource{},
-		consumer: mog.Resource{},
-		format: mog.Resource{},
+		producer:     resource{},
+		consumer:     resource{},
+		format:       resource{},
 		hasHeaderRow: true,
-		table: [][]string{},
+		table:        [][]string{},
 	}
 	return C
 }
@@ -74,11 +71,11 @@ func NewCSV() *CSV {
 // entire file, so if the file is very large and you don't have sufficent RAM
 // you will not like the results. There may be a row or chunk oriented
 // implementation in the future.
-func ReadCSV(r io.Reader ) ([][]string, error) {
+func ReadCSV(r io.Reader) ([][]string, error) {
 	cr := csv.NewReader(r)
 	rows, err := cr.ReadAll()
 	if err != nil {
-//		logger.Error(err)
+		//		logger.Error(err)
 		return nil, err
 	}
 
@@ -89,14 +86,14 @@ func ReadCSV(r io.Reader ) ([][]string, error) {
 func ReadCSVFile(f string) ([][]string, error) {
 	file, err := os.Open(f)
 	if err != nil {
-//		logger.Error(err)
+		//		logger.Error(err)
 		return nil, err
 	}
-	
+
 	// because we don't want to forget or worry about hanldling close prior
 	// to every return.
 	defer file.Close()
-	
+
 	// Read the file into csv
 	csv, err := ReadCSV(file)
 	return csv, nil

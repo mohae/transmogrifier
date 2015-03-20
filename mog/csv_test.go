@@ -5,57 +5,56 @@ import (
 	"testing"
 
 	json "github.com/mohae/customjson"
-	"github.com/mohae/transmogrifier/mog"
 )
 
 var marshal = json.NewMarshalString()
 var tableData, tableDataNoHeader [][]string
 
 func init() {
-	tableData =  [][]string{
-	[]string{
-		"Item", 
-		"Description", 
-		"Price",
-	},
-	[]string{
-		"string", 
-		" a string of indeterminate length", 
-		" $9.99", 
-	},
-	[]string{
-		"towel", 
-		" an intergalactic traveller's essential",
-		" $42.00",
-	}}
+	tableData = [][]string{
+		[]string{
+			"Item",
+			"Description",
+			"Price",
+		},
+		[]string{
+			"string",
+			" a string of indeterminate length",
+			" $9.99",
+		},
+		[]string{
+			"towel",
+			" an intergalactic traveller's essential",
+			" $42.00",
+		}}
 
-	tableDataNoHeader =  [][]string{
-	[]string{
-		"book", 
-		"Has the words \"don't panic\" in large, friendly letters on the cover", 
-		"Price",
-	},
-	[]string{
-		"string", 
-		" a string of indeterminate length", 
-		" $9.99", 
-	},
-	[]string{
-		"towel", 
-		" an intergalactic traveller's essential",
-		" $42.00",
-	}}
+	tableDataNoHeader = [][]string{
+		[]string{
+			"book",
+			"Has the words \"don't panic\" in large, friendly letters on the cover",
+			"Price",
+		},
+		[]string{
+			"string",
+			" a string of indeterminate length",
+			" $9.99",
+		},
+		[]string{
+			"towel",
+			" an intergalactic traveller's essential",
+			" $42.00",
+		}}
 
 }
 
 func TestNewCSV(t *testing.T) {
-	tests :=  []struct{
-		name string
-		value string
-		expected *CSV
+	tests := []struct {
+		name        string
+		value       string
+		expected    *CSV
 		expectedErr string
 	}{
-		{"NewCSV", "", &CSV{producer: mog.Resource{}, consumer: mog.Resource{}, format: mog.Resource{}, hasHeaderRow: true, table: [][]string{}}, ""},
+		{"NewCSV", "", &CSV{producer: resource{}, consumer: resource{}, format: resource{}, hasHeaderRow: true, table: [][]string{}}, ""},
 	}
 
 	for _, test := range tests {
@@ -66,33 +65,31 @@ func TestNewCSV(t *testing.T) {
 	}
 }
 
-
 func TestReadCSV(t *testing.T) {
-	tests :=  []struct{
-		name string
-		value string
-		expected [][]string
+	tests := []struct {
+		name        string
+		value       string
+		expected    [][]string
 		expectedErr string
 	}{
-		{"Test Read CSV", "../../test_files/test.csv", [][]string{
+		{"Test Read CSV", "../test_files/test.csv", [][]string{
 			[]string{
-				"Item", 
-				"Description", 
+				"Item",
+				"Description",
 				"Price",
 			},
 			[]string{
-				"string", 
-				" a string of indeterminate length", 
-				" $9.99", 
+				"string",
+				" a string of indeterminate length",
+				" $9.99",
 			},
 			[]string{
-				"towel", 
+				"towel",
 				" an intergalactic traveller's essential",
 				" $42.00",
 			},
 		}, ""},
 	}
-
 
 	for _, test := range tests {
 		file, err := os.Open(test.value)
@@ -101,12 +98,12 @@ func TestReadCSV(t *testing.T) {
 				t.Errorf("%s: expected %s, got %s", test.name, test.expectedErr, err.Error())
 			}
 		} else {
-		
+
 			value, err := ReadCSV(file)
 			if err != nil {
 				if test.expectedErr != "" {
 					t.Errorf("%s: expected an error: %s, but no error was received", test.name, test.expectedErr)
-				} 
+				}
 			} else {
 				if marshal.Get(value) != marshal.Get(test.expected) {
 					t.Errorf("%s: expected %s, got %s", test.name, marshal.Get(test.expected), marshal.Get(value))
@@ -118,33 +115,33 @@ func TestReadCSV(t *testing.T) {
 }
 
 func TestReadCSVFile(t *testing.T) {
-	tests := []struct{
-		name string
-		filename string
-		expected [][]string
+	tests := []struct {
+		name        string
+		filename    string
+		expected    [][]string
 		expectedErr string
 	}{
-		{"invalid filename test", "../../test_files/tests.csv", [][]string{}, "open ../../test_files/tests.csv: no such file or directory"},
-                {"no filename test", "", [][]string{}, "open : no such file or directory"},
-		{"valid csv filename test", "../../test_files/test.csv", [][]string{
+		{"invalid filename test", "../test_files/tests.csv", [][]string{}, "open ../test_files/tests.csv: no such file or directory"},
+		{"no filename test", "", [][]string{}, "open : no such file or directory"},
+		{"valid csv filename test", "../test_files/test.csv", [][]string{
 			[]string{
-				"Item", 
-				"Description", 
+				"Item",
+				"Description",
 				"Price",
 			},
 			[]string{
-				"string", 
-				" a string of indeterminate length", 
-				" $9.99", 
+				"string",
+				" a string of indeterminate length",
+				" $9.99",
 			},
 			[]string{
-				"towel", 
+				"towel",
 				" an intergalactic traveller's essential",
 				" $42.00",
 			},
- 		}, ""},
+		}, ""},
 	}
-	
+
 	for _, test := range tests {
 		res, err := ReadCSVFile(test.filename)
 		if err != nil {
@@ -164,5 +161,5 @@ func TestReadCSVFile(t *testing.T) {
 				}
 			}
 		}
-	}		
+	}
 }
