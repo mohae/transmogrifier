@@ -21,12 +21,19 @@ type mogger interface{} {
 
 // Currently only supporting local file.
 // TODO enable uri support
-type resource struct {
+type Resource struct {
 	// Name of the resource
 	Name string
-	//	Path	string
+	Path string
 	//	Scheme string
 	Host   string
 	Format string
 	Type   string
+}
+
+func NewResource(path string) Resource {
+	if path == "" {
+		return Resource{}
+	}
+	return Resource{Name: path, Path: path}
 }

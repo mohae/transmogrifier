@@ -4,22 +4,32 @@ import (
 	"encoding/csv"
 	_ "fmt"
 	"io"
+	"log"
 	"os"
-	_ "path/filepath"
+	"path/filepath"
 	_ "strconv"
-	_ "strings"
+	"strings"
 )
 
 // CSV is a struct for representing and working with csv data.
 type CSV struct {
-	// producer information.
-	producer resource
+	// source information.
+	source Resource
 
-	// consumer information
-	consumer resource
+	// sink information
+	sink Resource
 
 	// format information
-	format resource
+	format Resource
+
+	// Automatically set the format source-or not.
+	formatSourceAutoSet bool
+
+	// useFormat use a format file
+	useFormat bool
+
+	// formatType is the type of format being used
+	formatType string
 
 	// Variables consistent with stdlib's Reader struct in the csv package,
 	// with the exception of csv.Reader.TrailingComma, which is ommitted
@@ -57,13 +67,30 @@ type CSV struct {
 // for use.
 func NewCSV() *CSV {
 	C := &CSV{
-		producer:     resource{},
-		consumer:     resource{},
-		format:       resource{},
+		source:       Resource{},
+		sink:         Resource{},
+		format:       Resource{},
 		hasHeaderRow: true,
 		table:        [][]string{},
 	}
 	return C
+}
+
+// NewSourceCSV creates a new *CSV with its source set and initialized.
+func NewSourcesCSV(t, s string, b bool) *CSV {
+	c := NewCSV()
+	c.useFormat = b
+
+	// currently anything that's not file uses the default "", which
+	// means set it yourself to use it.
+	switch t {
+	case "bytes":
+	case "file":
+		c.formatType = "file"
+	}
+
+	c.SetSource(s)
+	return c
 }
 
 // ReadCSV takes a reader, and reads the data connected with it as CSV data.
@@ -97,4 +124,54 @@ func ReadCSVFile(f string) ([][]string, error) {
 	// Read the file into csv
 	csv, err := ReadCSV(file)
 	return csv, nil
+}
+
+// SetSource sets the source and has the formatFile updated, if applicable.
+func (c *CSV) SetSource(s string) {
+	c.source = Resource{Name: s}
+	c.autoSetFormatFile()
+}
+
+// autoSetFormatSource sets the formatSource if it is not already set or if the
+// previously set value was set by setFormatSource. The latter allows auto-
+// generated default source name to be updated when the source is while
+// preserving overrides.
+func (c *CSV) autoSetFormatFile() error {
+	// if the source isn't set, nothing to do.
+	if c.source.Name == "" {
+		log.Printf("setFormatSource exit: source not set")
+		return nil
+	}
+
+	// if formatSource isn't empty and wasn't set by setFormatSource,
+	// nothing to do
+	if c.source.Format != "" && !c.formatSourceAutoSet {
+		log.Printf("setFormatSource exit: formatSource was already set to %s", c.source.Format)
+		return nil
+	}
+
+	if c.source.Type != "file" {
+		log.Printf("setFormatSource exit: not using format file, format type is %s", c.source.Type)
+		return nil
+	}
+
+	// Figure out the filename
+	dir, file := filepath.Split(c.source.Name)
+
+	// break up the filename into its part, the last is extension.
+	var fname string
+	fParts := strings.Split(file, ".")
+
+	if len(fParts) <= 2 {
+		fname = fParts[0]
+	} else {
+		// Join all but the last part together for the name
+		// This handles names with multiple `.`
+		fname = strings.Join(fParts[0:len(fParts)-2], ".")
+	}
+
+	fname += ".md"
+	c.source.Path = filepath.Join(dir, fname)
+	c.formatSourceAutoSet = true
+	return nil
 }
