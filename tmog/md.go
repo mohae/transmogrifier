@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"path/filepath"
 	_ "strconv"
 	"strings"
@@ -17,12 +18,12 @@ var (
 	mdPipe []byte = []byte("|")
 
 	// LeftJustify is the MD for left justification of columns.
-	mdLeftJustify []byte = []byte(":--")
+	mdLeftJustify []byte = []byte(":---")
 
 	// RightJustify is the Md for right justification of columns,
-	mdRightJustify []byte = []byte("--:")
-	mdCentered     []byte = []byte(":--:")
-	mdDontJustify  []byte = []byte("--")
+	mdRightJustify []byte = []byte("---:")
+	mdCentered     []byte = []byte(":---:")
+	mdDontJustify  []byte = []byte("---")
 )
 
 // MDTable is a struct for representing and working with markdown tables
@@ -84,7 +85,7 @@ type MDTable struct {
 }
 
 func NewMDTable() *MDTable {
-	return &MDTable{HeaderRow: []string{}, ColumnAlignment: []string{}, ColumnEmphasis: []string{}, Table: [][]string{}, MD: []byte{}}
+	return &MDTable{HasHeaderRow: true, HeaderRow: []string{}, ColumnAlignment: []string{}, ColumnEmphasis: []string{}, Table: [][]string{}, MD: []byte{}}
 }
 
 // TMogCSVTableReader takes an io.Reader, which contains a CSV Table, and
@@ -174,6 +175,8 @@ func (m *MDTable) rowToMD(cols []string) {
 		m.MD = append(m.MD, bcol...)
 		m.appendColumnSeparator()
 	}
+	// add a new line at the end of a row
+	m.MD = append(m.MD, []byte("  \n")...)
 
 }
 
@@ -191,6 +194,7 @@ func (m *MDTable) addHeader() {
 	}
 
 	m.appendHeaderSeparatorRow(len(m.Table[0]))
+	m.MD = append(m.MD, []byte("  \n")...)
 	return
 }
 
@@ -220,7 +224,7 @@ func (m *MDTable) appendHeaderSeparatorRow(cols int) {
 
 		m.MD = append(m.MD, separator...)
 	}
-
+	m.MD = append(m.MD, []byte("  ")...)
 	return
 
 }
@@ -258,4 +262,35 @@ func (m *MDTable) formatFromFile() error {
 	m.ColumnEmphasis = table[2]
 
 	return nil
+}
+
+// Write saves the md table as a source.md; the original extension of source is replaced
+// by ,md, markdown, for the markdown output.
+func (m *MDTable) Write() (n int, err error) {
+	// figure out the output filename using source
+	dname, fname := filepath.Split(m.Source.Path)
+	fparts := strings.Split(fname, ".")
+	if len(fparts) == 1 {
+		fname = fparts[0] + ".md"
+	} else {
+		// the last part is the extention
+		fparts[len(fparts)-1] = "md"
+		fname = strings.Join(fparts, ".") // first rejoin the name, using the md ext
+	}
+
+	f, err := os.OpenFile(filepath.Join(dname, fname), os.O_CREATE|os.O_APPEND|os.O_RDWR|os.O_TRUNC, 0640)
+	if err != nil {
+		return 0, err
+	}
+
+	n, err = f.Write(m.MD)
+	if err != nil {
+		return n, err
+	}
+	err = f.Close()
+	if err != nil {
+		return n, err
+	}
+
+	return n, nil
 }
