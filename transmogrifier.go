@@ -29,17 +29,14 @@ func SetEnv() error {
 	var err error
 	var tmp string
 	tmp = os.Getenv(EnvMogTOML)
-
 	if tmp == "" {
 		tmp = "mog.toml"
 	}
-
 	_, err = toml.DecodeFile(tmp, &AppConfig)
 	if err != nil {
 		log.Print(err)
 		return err
 	}
-
 	return nil
 }
 
@@ -94,11 +91,9 @@ func appendArgString(a, s string) string {
 	if s == "" {
 		return a
 	}
-
 	if a == "" {
 		return s
 	}
-
 	a += "," + s
 	return a
 }

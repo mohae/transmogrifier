@@ -1,4 +1,4 @@
-package mogger
+package transmogrifier
 
 import (
 	"fmt"
@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	_ "strconv"
 	"strings"
-
-	"github.com/mohae/transmogrifier/mog"
 )
 
 // MDTable format representations.
@@ -30,40 +28,33 @@ var (
 type MDTable struct {
 	// producer/consumer information.
 	//mogger
-	Source mog.Resource
+	Source resource
 	// hasHeaderRows: whether the csv data includes a header row as its
 	// first row. If the csv data does not include header data, the header
 	// data must be provided via template, e.g. false implies
 	// 'useFormat' == true. True does not have any implications on using
 	// the format file.
 	HasHeaderRow bool
-
 	// headerRow contains the header row information. This is when a format
 	// has been supplied, the header row information is set.
 	HeaderRow []string
-
 	// columnAlignment contains the alignment information for each column
 	// in the table. This is supplied by the format
 	ColumnAlignment []string
-
 	// columnEmphasis contains the emphasis information, if any. for each
 	// column. This is supplied by the format.
 	ColumnEmphasis []string
-
 	// formatSource: the location and name of the source file to use. It
 	// can either be explicitely set, or TOMD will look for it as
 	// `source.fmt`, for `source.csv`.
 	FormatSource string
-
 	// whether for formatSource was autoset or not.
 	FormatSourceAutoset bool
-
 	// useFormat: whether there's a format to use with the CSV or not. For
 	// files, this is usually a file, with the same name and path as the
 	// source, using the 'fmt' extension. This can also be set explicitely.
 	// 'useFormat' == false implies 'hasHeaderRow' == true.
 	UseFormat bool
-
 	// formatType:	the type of format to use. By default, this is in sync
 	//		with the source type, but it can be set independently.
 	// Supported:
@@ -76,10 +67,8 @@ type MDTable struct {
 	//		set the different format information you wish to use
 	//		in the marshal using their Setters.
 	FormatType string
-
 	// table is the parsed csv data
 	Table [][]string
-
 	// md holds the md representation of the csv data
 	MD []byte
 }
@@ -92,12 +81,11 @@ func NewMDTable() *MDTable {
 // tranmogrifies it to a MD table, which is returned, unless an error occurrs.
 func (m *MDTable) TMogCSVTableReader(r io.Reader) ([]byte, error) {
 	var err error
-	m.Table, err = mog.ReadCSV(r)
+	m.Table, err = ReadCSV(r)
 	if err != nil {
 		log.Print(err)
 		return nil, err
 	}
-
 	//Now convert the data to md
 	m.toMD()
 	return m.MD, nil
@@ -109,12 +97,11 @@ func (m *MDTable) TmogCSVTable() error {
 	log.Printf("MarshalTable enter, source: %s", m.Source.Path)
 	var err error
 	// Try to read the source
-	m.Table, err = mog.ReadCSVFile(m.Source.Path)
+	m.Table, err = ReadCSVFile(m.Source.Path)
 	if err != nil {
 		log.Print(err)
 		return err
 	}
-
 	var formatName string
 	// otherwise see if  HasFormat
 	if m.UseFormat {
@@ -127,7 +114,6 @@ func (m *MDTable) TmogCSVTable() error {
 				log.Print(err)
 				return err
 			}
-
 			dir := filepath.Dir(m.Source.Path)
 			parts := strings.Split(filename, ".")
 			formatName = parts[0] + ".fmt"
@@ -136,7 +122,6 @@ func (m *MDTable) TmogCSVTable() error {
 			}
 		}
 	}
-
 	if m.UseFormat {
 		err := m.formatFromFile()
 		if err != nil {
@@ -144,7 +129,6 @@ func (m *MDTable) TmogCSVTable() error {
 			return err
 		}
 	}
-
 	// Now convert the data to md
 	m.toMD()
 	return nil
@@ -154,12 +138,10 @@ func (m *MDTable) TmogCSVTable() error {
 func (m *MDTable) toMD() {
 	// Process the header first
 	m.addHeader()
-
 	// for each row of table data, process it.
 	for _, row := range m.Table {
 		m.rowToMD(row)
 	}
-
 	return
 }
 
@@ -167,7 +149,6 @@ func (m *MDTable) toMD() {
 // with its configuration.
 func (m *MDTable) rowToMD(cols []string) {
 	m.appendColumnSeparator()
-
 	for _, col := range cols {
 		// TODO this is where column data decoration would occur
 		// with templates
@@ -177,7 +158,6 @@ func (m *MDTable) rowToMD(cols []string) {
 	}
 	// add a new line at the end of a row
 	m.MD = append(m.MD, []byte("  \n")...)
-
 }
 
 // addHeader adds the table header row and the separator row that goes between
@@ -192,7 +172,6 @@ func (m *MDTable) addHeader() {
 			m.rowToMD(m.HeaderRow)
 		}
 	}
-
 	m.appendHeaderSeparatorRow(len(m.Table[0]))
 	m.MD = append(m.MD, []byte("  \n")...)
 	return
@@ -201,7 +180,6 @@ func (m *MDTable) addHeader() {
 // appendHeaderSeparator adds the configured column  separator
 func (m *MDTable) appendHeaderSeparatorRow(cols int) {
 	m.appendColumnSeparator()
-
 	for i := 0; i < cols; i++ {
 		var separator []byte
 
@@ -226,7 +204,6 @@ func (m *MDTable) appendHeaderSeparatorRow(cols int) {
 	}
 	m.MD = append(m.MD, []byte("  ")...)
 	return
-
 }
 
 // appendColumnSeparator appends a pip to the md array
@@ -242,25 +219,21 @@ func (m *MDTable) formatFromFile() error {
 		log.Printf("formatFromFile: nothing to do, formatType was %s, expected file", m.FormatType)
 		return nil
 	}
-
 	// if formatSource isn't set, nothing todo
 	if m.FormatSource == "" {
 		log.Printf("formatFromFile: nothing to do, formatSource was not set", m.FormatType)
 		return nil
 	}
-
 	// Read from the format file
-	table, err := mog.ReadCSVFile(m.FormatSource)
+	table, err := ReadCSVFile(m.FormatSource)
 	if err != nil {
 		log.Print(err)
 		return err
 	}
-
 	//Row 0 is the header information
 	m.HeaderRow = table[0]
 	m.ColumnAlignment = table[1]
 	m.ColumnEmphasis = table[2]
-
 	return nil
 }
 
@@ -277,12 +250,10 @@ func (m *MDTable) Write() (n int, err error) {
 		fparts[len(fparts)-1] = "md"
 		fname = strings.Join(fparts, ".") // first rejoin the name, using the md ext
 	}
-
 	f, err := os.OpenFile(filepath.Join(dname, fname), os.O_CREATE|os.O_APPEND|os.O_RDWR|os.O_TRUNC, 0640)
 	if err != nil {
 		return 0, err
 	}
-
 	n, err = f.Write(m.MD)
 	if err != nil {
 		return n, err
@@ -291,6 +262,5 @@ func (m *MDTable) Write() (n int, err error) {
 	if err != nil {
 		return n, err
 	}
-
 	return n, nil
 }

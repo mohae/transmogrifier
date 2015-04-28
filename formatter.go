@@ -1,4 +1,4 @@
-package format
+package transmogrifier
 
 // Formatters describe the format of something.
 type formatter interface {

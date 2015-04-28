@@ -1,4 +1,4 @@
-package mog
+package transmogrifier
 
 import (
 	"encoding/csv"
@@ -14,23 +14,17 @@ import (
 // CSV is a struct for representing and working with csv data.
 type CSV struct {
 	// source information.
-	source Resource
-
+	source resource
 	// sink information
-	sink Resource
-
+	sink resource
 	// format information
-	format Resource
-
+	format resource
 	// Automatically set the format source-or not.
 	formatSourceAutoSet bool
-
 	// useFormat use a format file
 	useFormat bool
-
 	// formatType is the type of format being used
 	formatType string
-
 	// Variables consistent with stdlib's Reader struct in the csv package,
 	// with the exception of csv.Reader.TrailingComma, which is ommitted
 	// since it is ignored.
@@ -43,22 +37,18 @@ type CSV struct {
 	fieldsPerRecord  int
 	lazyQuotes       bool
 	trimLeadingSpace bool
-
 	// format
 	hasFormat bool
-
 	// hasHeaderRows: whether the csv data includes a header row as its
 	// first row. If the csv data does not include header data, the header
 	// data must be provided via template, e.g. false implies
 	// 'useFormat' == true. True does not have any implications on using
 	// the format file.
 	hasHeaderRow bool
-
 	// The csv file data:
 	// headerRow contains the header row information. This is when a format
 	// has been supplied, the header row information is set.
 	headerRow []string
-
 	// table is the parsed csv data
 	table [][]string
 }
@@ -67,9 +57,9 @@ type CSV struct {
 // for use.
 func NewCSV() *CSV {
 	C := &CSV{
-		source:       Resource{},
-		sink:         Resource{},
-		format:       Resource{},
+		source:       resource{},
+		sink:         resource{},
+		format:       resource{},
 		hasHeaderRow: true,
 		table:        [][]string{},
 	}
@@ -80,7 +70,6 @@ func NewCSV() *CSV {
 func NewSourcesCSV(t, s string, b bool) *CSV {
 	c := NewCSV()
 	c.useFormat = b
-
 	// currently anything that's not file uses the default "", which
 	// means set it yourself to use it.
 	switch t {
@@ -88,7 +77,6 @@ func NewSourcesCSV(t, s string, b bool) *CSV {
 	case "file":
 		c.formatType = "file"
 	}
-
 	c.SetSource(s)
 	return c
 }
@@ -105,7 +93,6 @@ func ReadCSV(r io.Reader) ([][]string, error) {
 		//		logger.Error(err)
 		return nil, err
 	}
-
 	return rows, nil
 }
 
@@ -116,11 +103,9 @@ func ReadCSVFile(f string) ([][]string, error) {
 		//		logger.Error(err)
 		return nil, err
 	}
-
 	// because we don't want to forget or worry about hanldling close prior
 	// to every return.
 	defer file.Close()
-
 	// Read the file into csv
 	csv, err := ReadCSV(file)
 	return csv, nil
@@ -128,7 +113,7 @@ func ReadCSVFile(f string) ([][]string, error) {
 
 // SetSource sets the source and has the formatFile updated, if applicable.
 func (c *CSV) SetSource(s string) {
-	c.source = Resource{Name: s}
+	c.source = resource{Name: s, Path: s}
 	c.autoSetFormatFile()
 }
 
@@ -142,26 +127,21 @@ func (c *CSV) autoSetFormatFile() error {
 		log.Printf("setFormatSource exit: source not set")
 		return nil
 	}
-
 	// if formatSource isn't empty and wasn't set by setFormatSource,
 	// nothing to do
 	if c.source.Format != "" && !c.formatSourceAutoSet {
 		log.Printf("setFormatSource exit: formatSource was already set to %s", c.source.Format)
 		return nil
 	}
-
 	if c.source.Type != "file" {
 		log.Printf("setFormatSource exit: not using format file, format type is %s", c.source.Type)
 		return nil
 	}
-
 	// Figure out the filename
 	dir, file := filepath.Split(c.source.Name)
-
 	// break up the filename into its part, the last is extension.
 	var fname string
 	fParts := strings.Split(file, ".")
-
 	if len(fParts) <= 2 {
 		fname = fParts[0]
 	} else {
@@ -169,7 +149,6 @@ func (c *CSV) autoSetFormatFile() error {
 		// This handles names with multiple `.`
 		fname = strings.Join(fParts[0:len(fParts)-2], ".")
 	}
-
 	fname += ".md"
 	c.source.Path = filepath.Join(dir, fname)
 	c.formatSourceAutoSet = true

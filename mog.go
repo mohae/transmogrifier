@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License
 //
-package mog
+package transmogrifier
 
 /*
 type mogger interface{} {
@@ -21,7 +21,7 @@ type mogger interface{} {
 
 // Currently only supporting local file.
 // TODO enable uri support
-type Resource struct {
+type resource struct {
 	// Name of the resource
 	Name string
 	Path string
@@ -31,9 +31,9 @@ type Resource struct {
 	Type   string
 }
 
-func NewResource(path string) Resource {
+func NewResource(path string) resource {
 	if path == "" {
-		return Resource{}
+		return resource{}
 	}
-	return Resource{Name: path, Path: path}
+	return resource{Name: path, Path: path}
 }

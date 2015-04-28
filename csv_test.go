@@ -1,4 +1,4 @@
-package mog
+package transmogrifier
 
 import (
 	"os"
@@ -54,7 +54,7 @@ func TestNewCSV(t *testing.T) {
 		expected    *CSV
 		expectedErr string
 	}{
-		{"NewCSV", "", &CSV{producer: resource{}, consumer: resource{}, format: resource{}, hasHeaderRow: true, table: [][]string{}}, ""},
+		{"NewCSV", "", &CSV{source: resource{}, sink: resource{}, format: resource{}, hasHeaderRow: true, table: [][]string{}}, ""},
 	}
 
 	for _, test := range tests {
@@ -72,7 +72,7 @@ func TestReadCSV(t *testing.T) {
 		expected    [][]string
 		expectedErr string
 	}{
-		{"Test Read CSV", "../test_files/test.csv", [][]string{
+		{"Test Read CSV", "test_files/test.csv", [][]string{
 			[]string{
 				"Item",
 				"Description",
@@ -121,9 +121,9 @@ func TestReadCSVFile(t *testing.T) {
 		expected    [][]string
 		expectedErr string
 	}{
-		{"invalid filename test", "../test_files/tests.csv", [][]string{}, "open ../test_files/tests.csv: no such file or directory"},
+		{"invalid filename test", "test_files/tests.csv", [][]string{}, "open test_files/tests.csv: no such file or directory"},
 		{"no filename test", "", [][]string{}, "open : no such file or directory"},
-		{"valid csv filename test", "../test_files/test.csv", [][]string{
+		{"valid csv filename test", "test_files/test.csv", [][]string{
 			[]string{
 				"Item",
 				"Description",
