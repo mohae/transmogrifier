@@ -154,3 +154,39 @@ func (c *CSV) autoSetFormatFile() error {
 	c.formatSourceAutoSet = true
 	return nil
 }
+
+// TableToMD creates a MD table out of the CSV data
+func (c *CSV) toMDTable() error {
+	// Try to read the source
+	c.Table, err := ReadCSVFile(m.Source.Path)
+	if err != nil {
+		return err
+	}
+	var formatName string
+	// otherwise see if  HasFormat
+	if c.UseFormat {
+		//		c.setFormatFile()
+		if c.FormatType == "file" {
+			//derive the format filename
+			filename := filepath.Base(c.Source.Path)
+			if filename == "." {
+				err = fmt.Errorf("unable to determine format filename")
+				return err
+			}
+			dir := filepath.Dir(c.Source.Path)
+			parts := strings.Split(filename, ".")
+			formatName = parts[0] + ".fmt"
+			if dir != "." {
+				formatName = dir + formatName
+			}
+			err := c.formatFromFile()
+			if err != nil {
+				return err
+			}
+		}
+	}
+	// Now convert the data to md
+	md := NewMDTable()
+	err = md.CSVToMD(c)
+	return err
+}
