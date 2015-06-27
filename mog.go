@@ -35,5 +35,6 @@ func NewResource(path string) resource {
 	if path == "" {
 		return resource{}
 	}
+	// why set Name and Path to the same value?
 	return resource{Name: path, Path: path}
 }
