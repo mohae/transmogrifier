@@ -1,8 +1,8 @@
 package transmogrifier
 
 import (
-	"fmt"
-	"io"
+	_ "fmt"
+	_ "io"
 	"log"
 	"os"
 	"path/filepath"
@@ -26,35 +26,21 @@ var (
 
 // MDTable is a struct for representing and working with markdown tables
 type MDTable struct {
-	// producer/consumer information.
-	//mogger
-	Source resource
-	// hasHeaderRows: whether the csv data includes a header row as its
-	// first row. If the csv data does not include header data, the header
-	// data must be provided via template, e.g. false implies
-	// 'useFormat' == true. True does not have any implications on using
-	// the format file.
-	HasHeaderRow bool
-	// headerRow contains the header row information. This is when a format
-	// has been supplied, the header row information is set.
-	HeaderRow []string
-	// columnAlignment contains the alignment information for each column
-	// in the table. This is supplied by the format
-	ColumnAlignment []string
-	// columnEmphasis contains the emphasis information, if any. for each
-	// column. This is supplied by the format.
-	ColumnEmphasis []string
-	// formatSource: the location and name of the source file to use. It
+	// data source, if applicable.
+	source resource
+	// sink, if applicable
+	sink resource
+	// FormatSource: the location and name of the source file to use. It
 	// can either be explicitely set, or TOMD will look for it as
 	// `source.fmt`, for `source.csv`.
-	FormatSource string
-	// whether for formatSource was autoset or not.
-	FormatSourceAutoset bool
+	formatSource string
+	// whether the formatSource was autoset or not.
+	formatSourceAutoset bool
 	// useFormat: whether there's a format to use with the CSV or not. For
 	// files, this is usually a file, with the same name and path as the
 	// source, using the 'fmt' extension. This can also be set explicitely.
 	// 'useFormat' == false implies 'hasHeaderRow' == true.
-	UseFormat bool
+	useFormat bool
 	// formatType:	the type of format to use. By default, this is in sync
 	//		with the source type, but it can be set independently.
 	// Supported:
@@ -66,80 +52,26 @@ type MDTable struct {
 	//		interpreted as using the default, which is to manually
 	//		set the different format information you wish to use
 	//		in the marshal using their Setters.
-	FormatType string
-	// table is the parsed csv data
-	Table [][]string
-	// md holds the md representation of the csv data
-	MD []byte
+	formatType string
+	// ColumnAlignment contains the alignment information, if any, for each
+	// column.  This is supplied by the format.
+	columnAlignment []string
+	// ColumnEmphasis contains the emphasis information, if any. for each column.
+	// This is supplied by the format.
+	columnEmphasis []string
+	md             []byte
 }
 
 func NewMDTable() *MDTable {
-	return &MDTable{HasHeaderRow: true, HeaderRow: []string{}, ColumnAlignment: []string{}, ColumnEmphasis: []string{}, Table: [][]string{}, MD: []byte{}}
+	return &MDTable{columnAlignment: []string{}, columnEmphasis: []string{}, Table: [][]string{}, md: []byte{}}
 }
 
-// TMogCSVTableReader takes an io.Reader, which contains a CSV Table, and
-// tranmogrifies it to a MD table, which is returned, unless an error occurrs.
-func (m *MDTable) TMogCSVTableReader(r io.Reader) ([]byte, error) {
-	var err error
-	m.Table, err = ReadCSV(r)
-	if err != nil {
-		log.Print(err)
-		return nil, err
-	}
-	//Now convert the data to md
-	m.toMD()
-	return m.MD, nil
-}
-
-// TmogCSVTable marshals the CSV within the struct transmogrified to a MD
-// table. The results are stored in m.md.
-func (m *MDTable) TmogCSVTable() error {
-	log.Printf("MarshalTable enter, source: %s", m.Source.Path)
-	var err error
-	// Try to read the source
-	m.Table, err = ReadCSVFile(m.Source.Path)
-	if err != nil {
-		log.Print(err)
-		return err
-	}
-	var formatName string
-	// otherwise see if  HasFormat
-	if m.UseFormat {
-		//		c.setFormatFile()
-		if m.FormatType == "file" {
-			//derive the format filename
-			filename := filepath.Base(m.Source.Path)
-			if filename == "." {
-				err = fmt.Errorf("unable to determine format filename")
-				log.Print(err)
-				return err
-			}
-			dir := filepath.Dir(m.Source.Path)
-			parts := strings.Split(filename, ".")
-			formatName = parts[0] + ".fmt"
-			if dir != "." {
-				formatName = dir + formatName
-			}
-		}
-	}
-	if m.UseFormat {
-		err := m.formatFromFile()
-		if err != nil {
-			log.Print(err)
-			return err
-		}
-	}
-	// Now convert the data to md
-	m.toMD()
-	return nil
-}
-
-// toMD converts the table to markdown
-func (m *MDTable) toMD() {
+// FromCSV creates a md table from CSV.
+func (m *MDTable) FromCSV(c *CSV) error {
 	// Process the header first
 	m.addHeader()
 	// for each row of table data, process it.
-	for _, row := range m.Table {
+	for _, row := range c.table {
 		m.rowToMD(row)
 	}
 	return
@@ -153,11 +85,11 @@ func (m *MDTable) rowToMD(cols []string) {
 		// TODO this is where column data decoration would occur
 		// with templates
 		bcol := []byte(col)
-		m.MD = append(m.MD, bcol...)
+		m.md = append(m.md, bcol...)
 		m.appendColumnSeparator()
 	}
 	// add a new line at the end of a row
-	m.MD = append(m.MD, []byte("  \n")...)
+	m.md = append(m.md, []byte("  \n")...)
 }
 
 // addHeader adds the table header row and the separator row that goes between
@@ -168,12 +100,12 @@ func (m *MDTable) addHeader() {
 		//remove the first row
 		m.Table = append(m.Table[1:])
 	} else {
-		if m.UseFormat {
+		if m.useFormat {
 			m.rowToMD(m.HeaderRow)
 		}
 	}
 	m.appendHeaderSeparatorRow(len(m.Table[0]))
-	m.MD = append(m.MD, []byte("  \n")...)
+	m.md = append(m.md, []byte("  \n")...)
 	return
 }
 
@@ -183,8 +115,8 @@ func (m *MDTable) appendHeaderSeparatorRow(cols int) {
 	for i := 0; i < cols; i++ {
 		var separator []byte
 
-		if m.UseFormat {
-			switch m.ColumnAlignment[i] {
+		if m.useFormat {
+			switch m.columnAlignment[i] {
 			case "left", "l":
 				separator = mdLeftJustify
 			case "center", "c":
@@ -200,40 +132,40 @@ func (m *MDTable) appendHeaderSeparatorRow(cols int) {
 
 		separator = append(separator, mdPipe...)
 
-		m.MD = append(m.MD, separator...)
+		m.md = append(m.md, separator...)
 	}
-	m.MD = append(m.MD, []byte("  ")...)
+	m.md = append(m.md, []byte("  ")...)
 	return
 }
 
 // appendColumnSeparator appends a pip to the md array
 func (m *MDTable) appendColumnSeparator() {
-	m.MD = append(m.MD, mdPipe...)
+	m.md = append(m.md, mdPipe...)
 }
 
 // FormatFromFile loads the format file specified.
 func (m *MDTable) formatFromFile() error {
 	// not really considering this an error that stops things, just one
 	// that requirs error level logging. Is this right?
-	if m.FormatType != "file" {
-		log.Printf("formatFromFile: nothing to do, formatType was %s, expected file", m.FormatType)
+	if m.formatType != "file" {
+		log.Printf("formatFromFile: nothing to do, formatType was %s, expected file", m.formatType)
 		return nil
 	}
 	// if formatSource isn't set, nothing todo
-	if m.FormatSource == "" {
-		log.Printf("formatFromFile: nothing to do, formatSource was not set", m.FormatType)
+	if m.formatSource == "" {
+		log.Printf("formatFromFile: nothing to do, formatSource was not set", m.formatType)
 		return nil
 	}
 	// Read from the format file
-	table, err := ReadCSVFile(m.FormatSource)
+	table, err := ReadCSVFile(m.formatSource)
 	if err != nil {
 		log.Print(err)
 		return err
 	}
 	//Row 0 is the header information
 	m.HeaderRow = table[0]
-	m.ColumnAlignment = table[1]
-	m.ColumnEmphasis = table[2]
+	m.columnAlignment = table[1]
+	m.columnEmphasis = table[2]
 	return nil
 }
 
@@ -241,7 +173,7 @@ func (m *MDTable) formatFromFile() error {
 // by ,md, markdown, for the markdown output.
 func (m *MDTable) Write() (n int, err error) {
 	// figure out the output filename using source
-	dname, fname := filepath.Split(m.Source.Path)
+	dname, fname := filepath.Split(m.source.Path)
 	fparts := strings.Split(fname, ".")
 	if len(fparts) == 1 {
 		fname = fparts[0] + ".md"
@@ -254,7 +186,7 @@ func (m *MDTable) Write() (n int, err error) {
 	if err != nil {
 		return 0, err
 	}
-	n, err = f.Write(m.MD)
+	n, err = f.Write(m.md)
 	if err != nil {
 		return n, err
 	}

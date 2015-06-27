@@ -54,7 +54,7 @@ func TestNewCSV(t *testing.T) {
 		expected    *CSV
 		expectedErr string
 	}{
-		{"NewCSV", "", &CSV{source: resource{}, sink: resource{}, format: resource{}, hasHeaderRow: true, table: [][]string{}}, ""},
+		{"NewCSV", "", &CSV{source: resource{}, sink: resource{}, hasHeaderRow: true, headerRow: []string{}, table: [][]string{}}, ""},
 	}
 
 	for _, test := range tests {
