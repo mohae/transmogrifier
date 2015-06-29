@@ -13,11 +13,21 @@
 //
 package transmogrifier
 
+import (
+	"errors"
+	"path"
+)
+
 /*
 type mogger interface{} {
 
 }
 */
+
+// Common errors
+var (
+	ErrNoSource = errors.New("no source was specified")
+)
 
 // Currently only supporting local file.
 // TODO enable uri support
@@ -31,10 +41,14 @@ type resource struct {
 	Type   string
 }
 
-func NewResource(path string) resource {
-	if path == "" {
+func NewResource(s string) resource {
+	if s == "" {
 		return resource{}
 	}
-	// why set Name and Path to the same value?
-	return resource{Name: path, Path: path}
+	dir := path.Dir(s)
+	// if the path didn't contain a directory, make dir an empty string
+	if dir == "." {
+		dir = ""
+	}
+	return resource{Name: path.Base(s), Path: dir}
 }
