@@ -16,6 +16,7 @@ package transmogrifier
 import (
 	"errors"
 	"path"
+	"path/filepath"
 )
 
 /*
@@ -51,4 +52,11 @@ func NewResource(s string) resource {
 		dir = ""
 	}
 	return resource{Name: path.Base(s), Path: dir}
+}
+
+func (r resource) String() string {
+	if r.Path == "" {
+		return r.Name
+	}
+	return filepath.Join(r.Name, r.Path)
 }
