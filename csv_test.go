@@ -54,7 +54,7 @@ func TestNewCSV(t *testing.T) {
 		expected    *CSV
 		expectedErr string
 	}{
-		{"NewCSV", "", &CSV{source: resource{}, sink: resource{}, hasHeaderRow: true, headerRow: []string{}, table: [][]string{}}, ""},
+		{"NewCSV", "", &CSV{source: resource{}, sink: resource{}, hasHeader: true, headerRow: []string{}, rows: [][]string{}}, ""},
 	}
 
 	for _, test := range tests {
@@ -65,7 +65,25 @@ func TestNewCSV(t *testing.T) {
 	}
 }
 
-func TestReadCSV(t *testing.T) {
+func TestNewCSVSource(t *testing.T) {
+	tests := []struct {
+		name        string
+		value       string
+		expected    *CSV
+		expectedErr string
+	}{
+		{"NewCSV", "hello.csv", &CSV{source: resource{Name: "hello.csv"}, sink: resource{}, hasHeader: true, headerRow: []string{}, rows: [][]string{}}, ""},
+		{"NewCSV", "test/hello.csv", &CSV{source: resource{Name: "hello.csv", Path: "test"}, sink: resource{}, hasHeader: true, headerRow: []string{}, rows: [][]string{}}, ""},
+	}
+
+	for _, test := range tests {
+		value := marshal.Get(NewCSVSource(test.value))
+		if value != marshal.Get(test.expected) {
+			t.Errorf("%s: expected %s, got %s", test.name, marshal.Get(test.expected), value)
+		}
+	}
+}
+func TestRead(t *testing.T) {
 	tests := []struct {
 		name        string
 		value       string
@@ -92,38 +110,42 @@ func TestReadCSV(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		c := NewCSV()
+		c.hasHeader = false
 		file, err := os.Open(test.value)
 		if err != nil {
 			if err.Error() != test.expectedErr {
 				t.Errorf("%s: expected %s, got %s", test.name, test.expectedErr, err.Error())
 			}
-		} else {
-
-			value, err := ReadCSV(file)
-			if err != nil {
-				if test.expectedErr != "" {
-					t.Errorf("%s: expected an error: %s, but no error was received", test.name, test.expectedErr)
-				}
-			} else {
-				if marshal.Get(value) != marshal.Get(test.expected) {
-					t.Errorf("%s: expected %s, got %s", test.name, marshal.Get(test.expected), marshal.Get(value))
-				}
-			}
+			goto close
 		}
+		err = c.Read(file)
+		if err != nil {
+			if test.expectedErr != "" {
+				t.Errorf("%s: expected an error: %s, but no error was received", test.name, test.expectedErr)
+			}
+			goto close
+		}
+		if marshal.Get(c.rows) != marshal.Get(test.expected) {
+			t.Errorf("%s: expected %s, got %s", test.name, marshal.Get(test.expected), marshal.Get(c.rows))
+		}
+	close:
 		file.Close()
 	}
 }
 
-func TestReadCSVFile(t *testing.T) {
+func TestReadFile(t *testing.T) {
 	tests := []struct {
-		name        string
-		filename    string
-		expected    [][]string
-		expectedErr string
+		name           string
+		hasHeader      bool
+		filename       string
+		expectedHeader []string
+		expectedRows   [][]string
+		expectedErr    string
 	}{
-		{"invalid filename test", "test_files/tests.csv", [][]string{}, "open test_files/tests.csv: no such file or directory"},
-		{"no filename test", "", [][]string{}, "open : no such file or directory"},
-		{"valid csv filename test", "test_files/test.csv", [][]string{
+		{"invalid filename test", false, "test_files/tests.csv", []string{}, [][]string{}, "open test_files/tests.csv: no such file or directory"},
+		{"no filename test", false, "", []string{}, [][]string{}, "no source was specified"},
+		{"valid csv filename test", false, "test_files/test.csv", []string{}, [][]string{
 			[]string{
 				"Item",
 				"Description",
@@ -140,24 +162,47 @@ func TestReadCSVFile(t *testing.T) {
 				" $42.00",
 			},
 		}, ""},
+		{"valid csv filename test", true, "test_files/test.csv", []string{
+			"Item",
+			"Description",
+			"Price",
+		}, [][]string{
+			[]string{
+				"string",
+				" a string of indeterminate length",
+				" $9.99",
+			},
+			[]string{
+				"towel",
+				" an intergalactic traveller's essential",
+				" $42.00",
+			},
+		}, ""},
 	}
 
 	for _, test := range tests {
-		res, err := ReadCSVFile(test.filename)
+		c := NewCSV()
+		c.hasHeader = test.hasHeader
+		err := c.ReadFile(test.filename)
 		if err != nil {
 			if err.Error() != test.expectedErr {
 				t.Errorf("%s expected %s, got %s\n", test.name, test.expectedErr, err.Error())
 			}
-		} else {
-			if test.expectedErr != "" {
-				t.Errorf("%s expected an error with %s, no error was returned.\n", test.name, test.expectedErr)
-			} else {
-				for i, row := range res {
-					for j, col := range row {
-						if col != test.expected[i][j] {
-							t.Error("For ", i, j, "expected: ", test.expected[i][j], " got", col)
-						}
-					}
+			continue
+		}
+		if test.expectedErr != "" {
+			t.Errorf("%s expected an error with %s, no error was returned.\n", test.name, test.expectedErr)
+			continue
+		}
+		for i, col := range c.headerRow {
+			if col != test.expectedHeader[i] {
+				t.Error("header col %d: expected %s, got %s", test.expectedHeader[i], col)
+			}
+		}
+		for i, row := range c.rows {
+			for j, col := range row {
+				if col != test.expectedRows[i][j] {
+					t.Error("For ", i, j, "expected: ", test.expectedRows[i][j], " got", col)
 				}
 			}
 		}
