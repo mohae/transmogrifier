@@ -97,6 +97,10 @@ func (c *CSV) ReadFile(f string) error {
 	return c.Read(file)
 }
 
+func (c *CSV) ReadSource() error {
+	return c.ReadFile(c.source.String())
+}
+
 // SetSource sets the source and has the formatFile updated, if applicable.
 func (c *CSV) SetSource(s string) {
 	c.source = resource{Name: s, Path: s}

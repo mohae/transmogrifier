@@ -60,3 +60,11 @@ func (r resource) String() string {
 	}
 	return filepath.Join(r.Name, r.Path)
 }
+
+func (r *resource) SetName(s string) {
+	r.Name = s
+}
+
+func (r *resource) SetPath(s string) {
+	r.Path = s
+}
