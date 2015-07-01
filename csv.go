@@ -2,7 +2,6 @@ package transmogrifier
 
 import (
 	"encoding/csv"
-	_ "fmt"
 	"io"
 	"os"
 	_ "path/filepath"
@@ -103,7 +102,7 @@ func (c *CSV) ReadSource() error {
 
 // SetSource sets the source and has the formatFile updated, if applicable.
 func (c *CSV) SetSource(s string) {
-	c.source = resource{Name: s, Path: s}
+	c.source = NewResource(s)
 }
 
 // Source returns the source string
