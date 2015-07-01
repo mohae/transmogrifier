@@ -132,7 +132,7 @@ func TestTransmogrifyStringTable(t *testing.T) {
 		"", "", "", "",
 	}
 	emphasis := []string{
-		"bold", "", "", "italic",
+		"bold", "italic", "", "strikethrough",
 	}
 	tests := []struct {
 		hasColumnNames bool
@@ -142,7 +142,8 @@ func TestTransmogrifyStringTable(t *testing.T) {
 		expectedErr    string
 	}{
 		{false, false, false,
-			`|---|---|---|---|  
+			`|  
+|  
 |name|id|desc|price|  
 |towel|42001|A hitchhicker's essential: don't leave home without your travel towel.|19.99|  
 |pan-galactic gargle blaster|42002|Zaphod's favorite drink. Have one, or some!|10.00|  
@@ -157,24 +158,27 @@ func TestTransmogrifyStringTable(t *testing.T) {
 |dinner: restaurant at the end of the universe|42042|Good for 1 steak dinner while you watch the universe's favorite table-side show.|99.99|  
 `,
 			""},
+
 		{false, true, false,
 			`|name|id|desc|price|  
 |---|---|---|---|  
-|towel|42001|A hitchhicker's essential: don't leave home without your travel towel.|19.99|  
-|pan-galactic gargle blaster|42002|Zaphod's favorite drink. Have one, or some!|10.00|  
-|dinner: restaurant at the end of the universe|42042|Good for 1 steak dinner while you watch the universe's favorite table-side show.|99.99|  
+|__towel__|_42001_|A hitchhicker's essential: don't leave home without your travel towel.|~~19.99~~|  
+|__pan-galactic gargle blaster__|_42002_|Zaphod's favorite drink. Have one, or some!|~~10.00~~|  
+|__dinner: restaurant at the end of the universe__|_42042_|Good for 1 steak dinner while you watch the universe's favorite table-side show.|~~99.99~~|  
 `,
 			""},
 		{true, true, false,
 			`|name|id|desc|price|  
 |---|---|---|---|  
-|towel|42001|A hitchhicker's essential: don't leave home without your travel towel.|19.99|  
-|pan-galactic gargle blaster|42002|Zaphod's favorite drink. Have one, or some!|10.00|  
-|dinner: restaurant at the end of the universe|42042|Good for 1 steak dinner while you watch the universe's favorite table-side show.|99.99|  
+|__towel__|_42001_|A hitchhicker's essential: don't leave home without your travel towel.|~~19.99~~|  
+|__pan-galactic gargle blaster__|_42002_|Zaphod's favorite drink. Have one, or some!|~~10.00~~|  
+|__dinner: restaurant at the end of the universe__|_42042_|Good for 1 steak dinner while you watch the universe's favorite table-side show.|~~99.99~~|  
 `,
 			""},
+
 		{false, false, true,
-			`|---|---|---|---|  
+			`|  
+|  
 |towel|42001|A hitchhicker's essential: don't leave home without your travel towel.|19.99|  
 |pan-galactic gargle blaster|42002|Zaphod's favorite drink. Have one, or some!|10.00|  
 |dinner: restaurant at the end of the universe|42042|Good for 1 steak dinner while you watch the universe's favorite table-side show.|99.99|  
@@ -187,18 +191,19 @@ func TestTransmogrifyStringTable(t *testing.T) {
 |dinner: restaurant at the end of the universe|42042|Good for 1 steak dinner while you watch the universe's favorite table-side show.|99.99|  
 `,
 			""},
+
 		{false, true, true,
 			`|towel|42001|A hitchhicker's essential: don't leave home without your travel towel.|19.99|  
 |---|---|---|---|  
-|pan-galactic gargle blaster|42002|Zaphod's favorite drink. Have one, or some!|10.00|  
-|dinner: restaurant at the end of the universe|42042|Good for 1 steak dinner while you watch the universe's favorite table-side show.|99.99|  
+|__pan-galactic gargle blaster__|_42002_|Zaphod's favorite drink. Have one, or some!|~~10.00~~|  
+|__dinner: restaurant at the end of the universe__|_42042_|Good for 1 steak dinner while you watch the universe's favorite table-side show.|~~99.99~~|  
 `,
 			""},
 		{true, true, true,
 			`|towel|42001|A hitchhicker's essential: don't leave home without your travel towel.|19.99|  
 |---|---|---|---|  
-|pan-galactic gargle blaster|42002|Zaphod's favorite drink. Have one, or some!|10.00|  
-|dinner: restaurant at the end of the universe|42042|Good for 1 steak dinner while you watch the universe's favorite table-side show.|99.99|  
+|__pan-galactic gargle blaster__|_42002_|Zaphod's favorite drink. Have one, or some!|~~10.00~~|  
+|__dinner: restaurant at the end of the universe__|_42042_|Good for 1 steak dinner while you watch the universe's favorite table-side show.|~~99.99~~|  
 `,
 			""},
 	}
@@ -259,7 +264,7 @@ func TestAppendHeaderSeparatorRow(t *testing.T) {
 		md.useFormat = true
 		md.SetColumnNames(test.cols)
 		md.SetColumnAlignment(test.alignment)
-		md.appendHeaderSeparatorRow(len(test.cols))
+		md.appendHeaderSeparatorRow()
 		if md.String() != test.expected {
 			t.Errorf("%d: expected %q got %q", i, test.expected, md.String())
 		}

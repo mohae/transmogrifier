@@ -138,15 +138,18 @@ func (m *MDTable) SetHasColumnNames(b bool) {
 
 // SetColumnNames
 func (m *MDTable) SetColumnNames(cols []string) {
-	m.columnNames = append(m.columnNames, cols...)
+	m.columnNames = make([]string, len(cols))
+	copy(m.columnNames, cols)
 }
 
 func (m *MDTable) SetColumnAlignment(cols []string) {
-	m.columnAlignment = append(m.columnAlignment, cols...)
+	m.columnAlignment = make([]string, len(cols))
+	copy(m.columnAlignment, cols)
 }
 
 func (m *MDTable) SetColumnEmphasis(cols []string) {
-	m.columnEmphasis = append(m.columnEmphasis, cols...)
+	m.columnEmphasis = make([]string, len(cols))
+	copy(m.columnEmphasis, cols)
 }
 
 // Transmogrify transomgrifies the source into a MD table. The result is held
@@ -159,15 +162,11 @@ func (m *MDTable) TransmogrifyStringTable(t [][]string) error {
 
 	// Process the header first
 	if m.hasColumnNames {
-		m.rowToMD(t[0])
+		m.SetColumnNames(t[0])
 		//remove the first row
-		t = append(t[1:])
-	} else {
-		if m.useFormat {
-			m.rowToMD(m.columnNames)
-		}
+		t = t[1:]
 	}
-	m.appendHeaderSeparatorRow(len(t[0]))
+	m.tableHeader()
 	// for each row of table data, process it.
 	for _, row := range t {
 		m.rowToMD(row)
@@ -175,14 +174,33 @@ func (m *MDTable) TransmogrifyStringTable(t [][]string) error {
 	return nil
 }
 
+func (m *MDTable) tableHeader() {
+	useFormat := m.useFormat
+	m.useFormat = false
+	m.rowToMD(m.columnNames)
+	m.appendHeaderSeparatorRow()
+	m.useFormat = useFormat
+}
+
 // rowTomd takes a table row and returns the md version of it consistent
 // with its configuration.
 func (m *MDTable) rowToMD(cols []string) {
 	m.appendColumnSeparator()
-	for _, col := range cols {
+	for i, col := range cols {
+		var bcol []byte
 		// TODO this is where column data decoration would occur
 		// with templates
-		bcol := []byte(col)
+		if m.useFormat {
+			switch m.columnEmphasis[i] {
+			case "bold", "b":
+				bcol = append(bcol, []byte{'_', '_'}...)
+			case "italic", "italics", "i":
+				bcol = append(bcol, []byte{'_'}...)
+			case "strikethrough", "s":
+				bcol = append(bcol, []byte{'~', '~'}...)
+			}
+		}
+		bcol = append(append(bcol, []byte(col)...), bcol...)
 		m.md = append(m.md, bcol...)
 		m.appendColumnSeparator()
 	}
@@ -191,9 +209,9 @@ func (m *MDTable) rowToMD(cols []string) {
 }
 
 // appendHeaderSeparator adds the configured column  separator
-func (m *MDTable) appendHeaderSeparatorRow(cols int) {
+func (m *MDTable) appendHeaderSeparatorRow() {
 	m.appendColumnSeparator()
-	for i := 0; i < cols; i++ {
+	for i := 0; i < len(m.columnNames); i++ {
 		var separator []byte
 
 		if m.useFormat {
