@@ -58,7 +58,7 @@ func (r resource) String() string {
 	if r.Path == "" {
 		return r.Name
 	}
-	return filepath.Join(r.Name, r.Path)
+	return filepath.Join(r.Path, r.Name)
 }
 
 func (r *resource) SetName(s string) {

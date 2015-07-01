@@ -1,80 +1,178 @@
 package transmogrifier
 
 import (
-	_ "fmt"
+	"fmt"
 	_ "io"
-	"log"
 	"os"
 	"path/filepath"
 	_ "strconv"
 	"strings"
 )
 
+// format type constants: low
+const (
+	UnsupportedFmt = iota
+	CSVFmt
+	MDFmt
+)
+
+type Format int
+
+var formats = [...]string{
+	"unsupported",
+	"CSV",
+	"MD",
+}
+
+func (f Format) String() string { return formats[f] }
+
+// FormatFromString returns the Format for a given string; or 'Unsupported' if
+// no match exists.
+func FormatFromString(s string) Format {
+	s = strings.ToLower(s)
+	switch s {
+	case "csv":
+		return CSVFmt
+	case "md":
+		return MDFmt
+	}
+	return UnsupportedFmt
+}
+
 // MDTable format representations.
 var (
 	// Pipe is the MD column separator
-	mdPipe []byte = []byte("|")
-
+	mdPipe = `|`
 	// LeftJustify is the MD for left justification of columns.
-	mdLeftJustify []byte = []byte(":---")
-
+	mdLeftJustify = []byte(":---")
 	// RightJustify is the Md for right justification of columns,
-	mdRightJustify []byte = []byte("---:")
-	mdCentered     []byte = []byte(":---:")
-	mdDontJustify  []byte = []byte("---")
+	mdRightJustify = []byte("---:")
+	mdCentered     = []byte(":---:")
+	mdDontJustify  = []byte("---")
 )
 
 // MDTable is a struct for representing and working with markdown tables
 type MDTable struct {
 	// data source, if applicable.
-	source resource
+	source       resource
+	sourceFormat Format
 	// sink, if applicable
-	sink resource
+	dest resource
 	// FormatSource: the location and name of the source file to use. It
 	// can either be explicitely set, or TOMD will look for it as
 	// `source.fmt`, for `source.csv`.
 	formatSource string
-	// whether the formatSource was autoset or not.
-	formatSourceAutoset bool
-	// useFormat: whether there's a format to use with the CSV or not. For
-	// files, this is usually a file, with the same name and path as the
-	// source, using the 'fmt' extension. This can also be set explicitely.
+	// useFormat: whether or not a format file should be used for the table.
 	// 'useFormat' == false implies 'hasHeaderRow' == true.
 	useFormat bool
-	// formatType:	the type of format to use. By default, this is in sync
-	//		with the source type, but it can be set independently.
-	// Supported:
-	//	file	The format information is in a format file. By default,
-	//		this is the source filename with the `.fmt` file
-	//		extension, instead of the original extension. This can
-	//		be set independently too.
-	//	default Any setting other than another supported type will be
-	//		interpreted as using the default, which is to manually
-	//		set the different format information you wish to use
-	//		in the marshal using their Setters.
-	formatType string
-	// ColumnAlignment contains the alignment information, if any, for each
+	// hasColumnNames
+	hasColumnNames bool
+	// columnNames contains the name of each table column
+	columnNames []string
+	// columnAlignment contains the alignment information, if any, for each
 	// column.  This is supplied by the format.
 	columnAlignment []string
-	// ColumnEmphasis contains the emphasis information, if any. for each column.
+	// columnEmphasis contains the emphasis information, if any. for each column.
 	// This is supplied by the format.
 	columnEmphasis []string
-	md             []byte
+	// md is the md table, in bytes
+	md []byte
 }
 
+// NewMDTable returns an empty MDTable struct.
 func NewMDTable() *MDTable {
-	return &MDTable{columnAlignment: []string{}, columnEmphasis: []string{}, Table: [][]string{}, md: []byte{}}
+	return &MDTable{columnNames: []string{}, columnAlignment: []string{}, columnEmphasis: []string{}, md: []byte{}}
 }
 
-// FromCSV creates a md table from CSV.
-func (m *MDTable) FromCSV(c *CSV) error {
+func (m MDTable) String() string {
+	return string(m.md)
+}
+
+func (m MDTable) Bytes() []byte {
+	return m.md
+}
+
+// SetSource set's the Source to the passed value.  The source's extension is
+// checked to see if it is a supported format.  An error is returned if it
+// isn't.
+func (m *MDTable) SetSource(s string) error {
+	if s == "" {
+		return fmt.Errorf("source string was empty")
+	}
+	parts := strings.Split(s, ".")
+	if len(parts) < 2 {
+		return fmt.Errorf("unable to determine format of %q", s)
+	}
+	m.sourceFormat = FormatFromString(parts[len(parts)-1])
+	if m.sourceFormat == UnsupportedFmt {
+		return fmt.Errorf("unsupported format for %q: %q", s, parts[len(parts)-1])
+	}
+	m.source = NewResource(s)
+	return nil
+}
+
+// SetUseFormat: whether or not a format should be applied to the MD table.
+func (m *MDTable) SetUseFormat(b bool) {
+	m.useFormat = b
+	m.SetHasColumnNames(b)
+}
+
+// SetFormatSource set's the source of the format information and sets
+// useFormat to 'true'.  If the formatSource != "", it will be used as the
+// location of the formatting information for the MD Table. If it isn't set and
+// useFormat == true, the format source is expected to be in the same location
+// as the source, with the same name + an extension of '.fmt'.
+func (m *MDTable) SetFormatSource(s string) error {
+	if s == "" {
+		return fmt.Errorf("unable to set format source: received empty string")
+	}
+	m.formatSource = s
+	m.useFormat = true
+	return nil
+}
+
+// SetHasColumnNames
+func (m *MDTable) SetHasColumnNames(b bool) {
+	m.hasColumnNames = b
+}
+
+// SetColumnNames
+func (m *MDTable) SetColumnNames(cols []string) {
+	m.columnNames = append(m.columnNames, cols...)
+}
+
+func (m *MDTable) SetColumnAlignment(cols []string) {
+	m.columnAlignment = append(m.columnAlignment, cols...)
+}
+
+func (m *MDTable) SetColumnEmphasis(cols []string) {
+	m.columnEmphasis = append(m.columnEmphasis, cols...)
+}
+
+// Transmogrify transomgrifies the source into a MD table. The result is held
+// in md and can be obtained by m.MD().  Any error encountered is returned.
+// SetHasHeader needs to be called prior to calling this method.
+func (m *MDTable) TransmogrifyStringTable(t [][]string) error {
+	if t == nil {
+		return fmt.Errorf("unable to tranmogrify string table: received nil")
+	}
+
 	// Process the header first
-	m.addHeader()
+	if m.hasColumnNames {
+		m.rowToMD(t[0])
+		//remove the first row
+		t = append(t[1:])
+	} else {
+		if m.useFormat {
+			m.rowToMD(m.columnNames)
+		}
+	}
+	m.appendHeaderSeparatorRow(len(t[0]))
 	// for each row of table data, process it.
-	for _, row := range c.table {
+	for _, row := range t {
 		m.rowToMD(row)
 	}
-	return
+	return nil
 }
 
 // rowTomd takes a table row and returns the md version of it consistent
@@ -90,23 +188,6 @@ func (m *MDTable) rowToMD(cols []string) {
 	}
 	// add a new line at the end of a row
 	m.md = append(m.md, []byte("  \n")...)
-}
-
-// addHeader adds the table header row and the separator row that goes between
-// the header row and the data.
-func (m *MDTable) addHeader() {
-	if m.HasHeaderRow {
-		m.rowToMD(m.Table[0])
-		//remove the first row
-		m.Table = append(m.Table[1:])
-	} else {
-		if m.useFormat {
-			m.rowToMD(m.HeaderRow)
-		}
-	}
-	m.appendHeaderSeparatorRow(len(m.Table[0]))
-	m.md = append(m.md, []byte("  \n")...)
-	return
 }
 
 // appendHeaderSeparator adds the configured column  separator
@@ -134,7 +215,7 @@ func (m *MDTable) appendHeaderSeparatorRow(cols int) {
 
 		m.md = append(m.md, separator...)
 	}
-	m.md = append(m.md, []byte("  ")...)
+	m.md = append(m.md, []byte("  \n")...)
 	return
 }
 
@@ -145,30 +226,49 @@ func (m *MDTable) appendColumnSeparator() {
 
 // FormatFromFile loads the format file specified.
 func (m *MDTable) formatFromFile() error {
-	// not really considering this an error that stops things, just one
-	// that requirs error level logging. Is this right?
-	if m.formatType != "file" {
-		log.Printf("formatFromFile: nothing to do, formatType was %s, expected file", m.formatType)
-		return nil
-	}
 	// if formatSource isn't set, nothing todo
 	if m.formatSource == "" {
-		log.Printf("formatFromFile: nothing to do, formatSource was not set", m.formatType)
 		return nil
 	}
 	// Read from the format file
-	table, err := ReadCSVFile(m.formatSource)
+	fsource := NewCSV()
+	fsource.SetHasHeader(false)
+	err := fsource.ReadFile(m.formatSource)
 	if err != nil {
-		log.Print(err)
 		return err
 	}
+	if len(fsource.rows) < 3 {
+		return fmt.Errorf("insufficient format rows: expected at least 3, got %d", len(fsource.rows))
+	}
 	//Row 0 is the header information
-	m.HeaderRow = table[0]
-	m.columnAlignment = table[1]
-	m.columnEmphasis = table[2]
+	m.columnNames = append(m.columnNames, fsource.rows[0]...)
+	//Row 1 is the column alignment information
+	m.columnAlignment = append(m.columnAlignment, fsource.rows[1]...)
+	//Row 2 is the column emphasis information
+	m.columnEmphasis = append(m.columnEmphasis, fsource.rows[2]...)
 	return nil
 }
 
+// SetDest sets the destination of the Write operation. If the destination is
+// an empty string, "", the source name will be concatinated with '.md'. Any
+// non-empty dest string will be used as the destination.
+//
+// Currently, only write to file is supported.
+func (m *MDTable) SetDest(s string) {
+	m.dest = NewResource(s)
+	if s != "" {
+		return
+	}
+	m.dest.SetPath(m.source.Path)
+	m.dest.SetName(mdFilenameFrom(m.source.Name))
+}
+
+// TODO add support for writing to the received writer
+//
+//
+
+//
+// Currentky
 // Write saves the md table as a source.md; the original extension of source is replaced
 // by ,md, markdown, for the markdown output.
 func (m *MDTable) Write() (n int, err error) {
@@ -195,4 +295,24 @@ func (m *MDTable) Write() (n int, err error) {
 		return n, err
 	}
 	return n, nil
+}
+
+func mdFilenameFrom(source string) string {
+	if source == "" {
+		return ""
+	}
+	parts := strings.Split(source, ".")
+	if len(parts) < 2 {
+		return fmt.Sprintf("%s.md", parts[0])
+	}
+	var dest string
+	for i, part := range parts {
+		if i == len(parts)-1 {
+			dest += "md"
+			return dest
+		}
+		dest += part + "."
+	}
+	return dest
+
 }

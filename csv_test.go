@@ -93,18 +93,21 @@ func TestRead(t *testing.T) {
 		{"Test Read CSV", "test_files/test.csv", [][]string{
 			[]string{
 				"Item",
+				"Id",
 				"Description",
 				"Price",
 			},
 			[]string{
 				"string",
-				" a string of indeterminate length",
-				" $9.99",
+				"00042",
+				"a string of indeterminate length",
+				"$9.99",
 			},
 			[]string{
 				"towel",
-				" an intergalactic traveller's essential",
-				" $42.00",
+				"10042",
+				"an intergalactic traveller's essential",
+				"$42.00",
 			},
 		}, ""},
 	}
@@ -148,34 +151,40 @@ func TestReadFile(t *testing.T) {
 		{"valid csv filename test", false, "test_files/test.csv", []string{}, [][]string{
 			[]string{
 				"Item",
+				"Id",
 				"Description",
 				"Price",
 			},
 			[]string{
 				"string",
-				" a string of indeterminate length",
-				" $9.99",
+				"00042",
+				"a string of indeterminate length",
+				"$9.99",
 			},
 			[]string{
 				"towel",
-				" an intergalactic traveller's essential",
-				" $42.00",
+				"10042",
+				"an intergalactic traveller's essential",
+				"$42.00",
 			},
 		}, ""},
 		{"valid csv filename test", true, "test_files/test.csv", []string{
 			"Item",
+			"Id",
 			"Description",
 			"Price",
 		}, [][]string{
 			[]string{
 				"string",
-				" a string of indeterminate length",
-				" $9.99",
+				"00042",
+				"a string of indeterminate length",
+				"$9.99",
 			},
 			[]string{
 				"towel",
-				" an intergalactic traveller's essential",
-				" $42.00",
+				"10042",
+				"an intergalactic traveller's essential",
+				"$42.00",
 			},
 		}, ""},
 	}
