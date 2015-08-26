@@ -2,10 +2,7 @@ package transmogrifier
 
 import (
 	"fmt"
-	_ "io"
 	"os"
-	"path/filepath"
-	_ "strconv"
 	"strings"
 )
 
@@ -255,33 +252,15 @@ func (m *MDTable) SetDest(s string) {
 //
 //
 
-//
-// Currentky
-// Write saves the md table as a source.md; the original extension of source is replaced
-// by ,md, markdown, for the markdown output.
-func (m *MDTable) Write() (n int, err error) {
-	// figure out the output filename using source
-	dname, fname := filepath.Split(m.source.Path)
-	fparts := strings.Split(fname, ".")
-	if len(fparts) == 1 {
-		fname = fparts[0] + ".md"
-	} else {
-		// the last part is the extention
-		fparts[len(fparts)-1] = "md"
-		fname = strings.Join(fparts, ".") // first rejoin the name, using the md ext
-	}
-	f, err := os.OpenFile(filepath.Join(dname, fname), os.O_CREATE|os.O_APPEND|os.O_RDWR|os.O_TRUNC, 0640)
+// Write saves the md table as a markdown file.
+func (m *MDTable) WriteToFile() (n int, err error) {
+	// Open the destination file and write.
+	f, err := os.OpenFile(m.dest.String(), os.O_CREATE|os.O_APPEND|os.O_RDWR|os.O_TRUNC, 0640)
 	if err != nil {
 		return 0, err
 	}
+	defer f.Close()
 	n, err = f.Write(m.md)
-	if err != nil {
-		return n, err
-	}
-	err = f.Close()
-	if err != nil {
-		return n, err
-	}
 	return n, nil
 }
 
