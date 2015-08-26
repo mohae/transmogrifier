@@ -101,8 +101,9 @@ func (c *CSV) ReadSource() error {
 }
 
 // SetSource sets the source and has the formatFile updated, if applicable.
+// TODO: Currently assumes file, refactor to support other types when needed.
 func (c *CSV) SetSource(s string) {
-	c.source = NewResource(s)
+	c.source = NewResource(s, FmtCSV, File)
 }
 
 // Source returns the source string

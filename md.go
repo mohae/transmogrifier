@@ -9,36 +9,6 @@ import (
 	"strings"
 )
 
-// format type constants: low
-const (
-	UnsupportedFmt = iota
-	CSVFmt
-	MDFmt
-)
-
-type Format int
-
-var formats = [...]string{
-	"unsupported",
-	"CSV",
-	"MD",
-}
-
-func (f Format) String() string { return formats[f] }
-
-// FormatFromString returns the Format for a given string; or 'Unsupported' if
-// no match exists.
-func FormatFromString(s string) Format {
-	s = strings.ToLower(s)
-	switch s {
-	case "csv":
-		return CSVFmt
-	case "md":
-		return MDFmt
-	}
-	return UnsupportedFmt
-}
-
 // MDTable format representations.
 var (
 	// Pipe is the MD column separator
