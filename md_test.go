@@ -8,16 +8,16 @@ import (
 func TestSetSource(t *testing.T) {
 	tests := []struct {
 		source         string
-		expectedFormat Format
+		expectedFormat FormatType
 		expectedErr    string
 	}{
-		{"", UnsupportedFmt, "source string was empty"},
-		{"test", UnsupportedFmt, "unable to determine format of \"test\""},
-		{"test.yaml", UnsupportedFmt, "unsupported format for \"test.yaml\": \"yaml\""},
-		{"test.CSV", CSVFmt, ""},
-		{"test.csv", CSVFmt, ""},
-		{"test.MD", MDFmt, ""},
-		{"test.md", MDFmt, ""},
+		{"", FmtUnsupported, "source string was empty"},
+		{"test", FmtUnsupported, "unable to determine format of \"test\""},
+		{"test.yaml", FmtUnsupported, "unsupported format for \"test.yaml\": \"yaml\""},
+		{"test.CSV", FmtCSV, ""},
+		{"test.csv", FmtCSV, ""},
+		{"test.MD", FmtMD, ""},
+		{"test.md", FmtMD, ""},
 	}
 	md := NewMDTable()
 	for i, test := range tests {

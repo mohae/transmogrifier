@@ -17,6 +17,7 @@ import (
 	"errors"
 	"path"
 	"path/filepath"
+	"strings"
 )
 
 /*
@@ -131,7 +132,7 @@ func (r *resource) SetPath(s string) {
 // a supported Format, UnsupportedFormat will be used. It may be useful to
 // check the value of the Format after setting.
 func (r *resource) SetFormat(s string) {
-	r.Format = FormatFromString(s)
+	r.Format = FormatTypeFromString(s)
 }
 
 // SetResourceType takes the passed string and sets the Type. If the string is

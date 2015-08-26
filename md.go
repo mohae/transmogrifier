@@ -25,7 +25,7 @@ var (
 type MDTable struct {
 	// data source, if applicable.
 	source       resource
-	sourceFormat Format
+	sourceFormat FormatType
 	// sink, if applicable
 	dest resource
 	// FormatSource: the location and name of the source file to use. It
@@ -73,11 +73,11 @@ func (m *MDTable) SetSource(s string) error {
 	if len(parts) < 2 {
 		return fmt.Errorf("unable to determine format of %q", s)
 	}
-	m.sourceFormat = FormatFromString(parts[len(parts)-1])
-	if m.sourceFormat == UnsupportedFmt {
+	m.sourceFormat = FormatTypeFromString(parts[len(parts)-1])
+	if m.sourceFormat == FmtUnsupported {
 		return fmt.Errorf("unsupported format for %q: %q", s, parts[len(parts)-1])
 	}
-	m.source = NewResource(s)
+	m.source = NewResource(s, m.sourceFormat, File)
 	return nil
 }
 
@@ -243,7 +243,7 @@ func (m *MDTable) formatFromFile() error {
 //
 // Currently, only write to file is supported.
 func (m *MDTable) SetDest(s string) {
-	m.dest = NewResource(s)
+	m.dest = NewResource(s, FmtMDTable, File)
 	if s != "" {
 		return
 	}
