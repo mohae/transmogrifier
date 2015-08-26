@@ -253,15 +253,15 @@ func (m *MDTable) SetDest(s string) {
 //
 
 // Write saves the md table as a markdown file.
-func (m *MDTable) WriteToFile() (n int, err error) {
+func (m *MDTable) WriteToFile() (name string, n int, err error) {
 	// Open the destination file and write.
 	f, err := os.OpenFile(m.dest.String(), os.O_CREATE|os.O_APPEND|os.O_RDWR|os.O_TRUNC, 0640)
 	if err != nil {
-		return 0, err
+		return m.dest.String(), 0, err
 	}
 	defer f.Close()
 	n, err = f.Write(m.md)
-	return n, nil
+	return m.dest.String(), n, err
 }
 
 func mdFilenameFrom(source string) string {
