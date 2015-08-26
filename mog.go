@@ -25,6 +25,29 @@ type mogger interface{} {
 }
 */
 
+const(
+	UnsupportedType ResourceType  = iota
+	File
+)
+// ResourceType is the type of a resource
+type ResourceType int
+
+var resourceTypes = [...]string{
+	"unsupported",
+	"file"
+}
+
+func (r ResourceType) String() string { return resourcTypes[r] }
+
+func ResourceTypeFromString(s string) ResourceType {
+	s = strings.ToLower(s)
+	switch s {
+	case "file":
+		return File
+	}
+	return UnsupportedType
+}
+
 // Common errors
 var (
 	ErrNoSource = errors.New("no source was specified")
@@ -33,25 +56,23 @@ var (
 // Currently only supporting local file.
 // TODO enable uri support
 type resource struct {
-	// Name of the resource
-	Name string
-	Path string
-	//	Scheme string
-	Host   string
-	Format string
-	Type   string
+	Name string         // Name of the resource
+	Path string         // Path of the resource
+	Host   string       // Host of the resource
+	Format string       // Format of the resource
+	Type   ResourceType // Type of the resource
 }
 
-func NewResource(s string) resource {
+func NewResource(s string, t ResourceType) resource {
 	if s == "" {
-		return resource{}
+		return resource{Type: t}
 	}
 	dir := path.Dir(s)
 	// if the path didn't contain a directory, make dir an empty string
 	if dir == "." {
 		dir = ""
 	}
-	return resource{Name: path.Base(s), Path: dir}
+	return resource{Name: path.Base(s), Path: dir, Type: t}
 }
 
 func (r resource) String() string {
