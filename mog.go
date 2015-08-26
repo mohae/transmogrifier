@@ -24,28 +24,29 @@ type mogger interface{} {
 
 }
 */
-
 const(
 	UnsupportedResource ResourceType  = iota
 	File
 )
+
 // ResourceType is the type of a resource
 type ResourceType int
+
+func (r ResourceType) String() string { return resourceTypes[r] }
 
 var resourceTypes = [...]string{
 	"unsupported",
 	"file"
 }
 
-func (r ResourceType) String() string { return resourcTypes[r] }
-
+// ResourceTypeFromString returns the ResourceType constant
 func ResourceTypeFromString(s string) ResourceType {
 	s = strings.ToLower(s)
 	switch s {
 	case "file":
 		return File
 	}
-	return UnsupportedType
+	return UnsupportedResource
 }
 
 // Common errors
