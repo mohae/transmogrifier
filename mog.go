@@ -24,10 +24,42 @@ type mogger interface{} {
 
 }
 */
+const (
+	UnsupportedFormat FormatType = iota
+	CSV
+	MD
+	MDTable
+)
+
 const(
 	UnsupportedResource ResourceType  = iota
 	File
 )
+
+// FormatType is the format of a resource
+type FormatType int
+
+func (f FormatType) String() string { return formatTypes[f] }
+
+var formatTypes = [...]string{
+	"unsupported",
+	"csv",
+	"md",
+	"mdtable"
+}
+
+func FormatTypeFromString(s string) FormatType {
+	s = strings.ToLower(s)
+	switch s {
+	case "csv":
+		return CSV
+	case "md":
+		return MD
+	case "mdtable":
+		return MDTable
+	}
+	return UnsupportedFormat
+}
 
 // ResourceType is the type of a resource
 type ResourceType int
