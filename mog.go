@@ -26,7 +26,7 @@ type mogger interface{} {
 */
 
 const(
-	UnsupportedType ResourceType  = iota
+	UnsupportedResource ResourceType  = iota
 	File
 )
 // ResourceType is the type of a resource
